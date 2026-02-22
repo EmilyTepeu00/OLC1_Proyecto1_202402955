@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="ELI_NOSQL" default="default" basedir=".">
+    <description>Builds the project with JFlex and CUP.</description>
+    
+    <!-- PROPIEDADES -->
+    <property name="src.dir" value="src"/>
+    <property name="compiler.dir" value="${src.dir}/eli/compiler"/>
+    <property name="build.dir" value="build"/>
+    <property name="classes.dir" value="${build.dir}/classes"/>
+    <property name="dist.dir" value="dist"/>
+    
+    <!-- TARGET POR DEFAULT DE NETBEANS -->
+    <target name="default" depends="compile"/>
+    
+    <!-- LIMPIAR -->
+    <target name="clean">
+        <delete dir="${build.dir}"/>
+        <delete dir="${dist.dir}"/>
+        <delete>
+            <fileset dir="${compiler.dir}">
+                <include name="Lexer.java"/>
+                <include name="Parser.java"/>
+                <include name="sym.java"/>
+            </fileset>
+        </delete>
+    </target>
+    
+    <!-- INICIALIZAR -->
+    <target name="init">
+        <mkdir dir="${build.dir}"/>
+        <mkdir dir="${classes.dir}"/>
+        <mkdir dir="${dist.dir}"/>
+    </target>
+    
+    <!-- GENERAR CON JFlex -->
+    <target name="generate-jflex" depends="init">
+        <echo message="Generando Lexer con JFlex..."/>
+        <java classname="jflex.Main" fork="true">
+            <arg value="${compiler.dir}/lexer.jflex"/>
+            <classpath>
+                <fileset dir="lib">
+                    <include name="jflex-1.9.1.jar"/>
+                    <!-- AGREGAR ESTA LÍNEA: -->
+                    <include name="java-cup-runtime-11b-20160615.jar"/>
+                </fileset>
+            </classpath>
+        </java>
+    </target>
+    
+    <!-- GENERAR CON CUP -->
+    <target name="generate-cup" depends="generate-jflex">
+        <echo message="Generando Parser con CUP..."/>
+        <java classname="java_cup.Main" fork="true">
+            <arg value="-destdir"/>
+            <arg value="${compiler.dir}"/>
+            <arg value="-parser"/>
+            <arg value="Parser"/>
+            <arg value="-symbols"/>
+            <arg value="sym"/>
+            <arg value="${compiler.dir}/parser.cup"/>
+            <classpath>
+                <fileset dir="lib">
+                    <include name="java-cup-11b-20160615.jar"/>
+                    <include name="java-cup-runtime-11b-20160615.jar"/>
+                </fileset>
+            </classpath>
+        </java>
+    </target>
+    
+    <!-- COMPILAR -->
+    <target name="compile" depends="generate-cup">
+        <echo message="Compilando clases..."/>
+        <javac srcdir="${src.dir}" destdir="${classes.dir}" 
+               includeantruntime="false" debug="true">
+            <classpath>
+                <fileset dir="lib">
+                    <include name="*.jar"/>
+                </fileset>
+            </classpath>
+        </javac>
+    </target>
+    
+    <!-- CREAR JAR -->
+    <target name="jar" depends="compile">
+        <echo message="Creando archivo JAR..."/>
+        <jar destfile="${dist.dir}/ELI_NOSQL.jar" basedir="${classes.dir}">
+            <manifest>
+                <attribute name="Main-Class" value="ELI_NOSQL"/>
+                <attribute name="Class-Path" value="lib/java-cup-runtime-11b-20160615.jar"/>
+            </manifest>
+        </jar>
+    </target>
+    
+    <!-- EJECUTAR -->
+    <target name="run" depends="jar">
+        <echo message="Ejecutando ELI_NOSQL..."/>
+        <java classname="ELI_NOSQL" fork="true">
+            <classpath>
+                <pathelement path="${classes.dir}"/>
+                <fileset dir="lib">
+                    <include name="*.jar"/>
+                </fileset>
+            </classpath>
+        </java>
+    </target>
+    
+    <!-- PROBAR JFLEX -->
+    <target name="test-jflex" depends="init">
+        <echo message="Probando JFlex..."/>
+        <java classname="jflex.Main" fork="true">
+            <arg value="${compiler.dir}/lexer.jflex"/>
+            <classpath>
+                <fileset dir="lib">
+                    <include name="jflex-1.9.1.jar"/>
+                </fileset>
+            </classpath>
+        </java>
+    </target>
+    
+    <!-- PROBAR CUP -->
+    <target name="test-cup" depends="init">
+        <echo message="Probando CUP..."/>
+        <java classname="java_cup.Main" fork="true">
+            <arg value="-destdir"/>
+            <arg value="${compiler.dir}"/>
+            <arg value="-parser"/>
+            <arg value="Parser"/>
+            <arg value="-symbols"/>
+            <arg value="sym"/>
+            <arg value="${compiler.dir}/parser.cup"/>
+            <classpath>
+                <fileset dir="lib">
+                    <include name="java-cup-11b-20160615.jar"/>
+                </fileset>
+            </classpath>
+        </java>
+    </target>
+    
+</project>
