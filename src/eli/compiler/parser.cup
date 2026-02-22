@@ -1,1 +1,40 @@
+// ANALIZADOR SINTACTICO
+package eli.compiler;
 
+import java_cup.runtime.*;
+import java.util.*;
+
+// TERMINALES (TOKENS)
+terminal           DATABASE, TABLE, READ, ADD, UPDATE, EXPORT, USE, CLEAR;      // Palabras reservadas de ELI
+terminal           FIELDS, FILTER, SET, STORE, AT;                              // Palabras para clausulas internas
+terminal           INT, FLOAT, STRING, BOOL;                                    // Tipos de datos (tablas)
+terminal           EQ, NEQ, GT, LT, GTE, LTE;                                   // Operadores relacionales (filtros)
+terminal           AND, OR, NOT;                                                // Operadores logicos
+terminal           LBRACE, RBRACE, LPAREN, RPAREN, LBRACKET, RBRACKET;          // Signos de agrupacion y puntuacion
+terminal           SEMICOLON, COLON, COMMA, DOT, ASSIGN, STAR;
+terminal           IDENTIFICADOR;                                               // Identificadores y valores
+terminal Integer   ENTERO;
+terminal Double    DECIMAL;
+terminal String    STRING_LITERAL;
+terminal Boolean   BOOLEAN;
+
+// NO TERMINALES
+non terminal program;
+non terminal statement;
+non terminal statement_list;
+non terminal store_statement;
+
+// REGLAS GRAMATICALES BASICAS
+program ::= statement_list;
+
+statement_list ::= 
+      statement_list statement
+    | statement
+    ;
+
+statement ::= 
+      DATABASE IDENTIFICADOR LBRACE store_statement RBRACE
+    | USE IDENTIFICADOR SEMICOLON
+    ;
+
+store_statement ::= STORE AT STRING_LITERAL SEMICOLON;
