@@ -2,6 +2,10 @@ import java.io.File;
 import javax.swing.JFileChooser;
 import java.io.StringWriter;
 import java.io.PrintWriter;
+import javax.swing.JFrame;
+import javax.swing.JTable;
+import javax.swing.JScrollPane;
+import javax.swing.JOptionPane;
 
 public class VentanaPrincipal extends javax.swing.JFrame {
 
@@ -48,6 +52,7 @@ public class VentanaPrincipal extends javax.swing.JFrame {
         label2.setText("EDITOR DE TEXTO:");
 
         txtEditor.setColumns(40);
+        txtEditor.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         txtEditor.setRows(10);
         jScrollPane1.setViewportView(txtEditor);
 
@@ -64,6 +69,7 @@ public class VentanaPrincipal extends javax.swing.JFrame {
 
         txtConsola.setEditable(false);
         txtConsola.setColumns(40);
+        txtConsola.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         txtConsola.setRows(5);
         jScrollPane2.setViewportView(txtConsola);
 
@@ -72,6 +78,7 @@ public class VentanaPrincipal extends javax.swing.JFrame {
 
         txtOutput.setEditable(false);
         txtOutput.setColumns(20);
+        txtOutput.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         txtOutput.setRows(5);
         jScrollPane3.setViewportView(txtOutput);
 
@@ -114,9 +121,19 @@ public class VentanaPrincipal extends javax.swing.JFrame {
         MenuReportes.setText("Reportes");
 
         OpcionErrores.setText("Errores");
+        OpcionErrores.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                OpcionErroresActionPerformed(evt);
+            }
+        });
         MenuReportes.add(OpcionErrores);
 
         OpcionTokens.setText("Tokens");
+        OpcionTokens.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                OpcionTokensActionPerformed(evt);
+            }
+        });
         MenuReportes.add(OpcionTokens);
 
         jMenuBar1.add(MenuReportes);
@@ -150,16 +167,16 @@ public class VentanaPrincipal extends javax.swing.JFrame {
                                 .addComponent(label2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
                         .addGap(4, 4, 4)))
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addComponent(label1, javax.swing.GroupLayout.PREFERRED_SIZE, 240, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(58, 58, 58))
                     .addGroup(layout.createSequentialGroup()
                         .addGap(16, 16, 16)
                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addComponent(label4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, 327, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addContainerGap(10, Short.MAX_VALUE))))
+                        .addContainerGap(20, Short.MAX_VALUE))
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addComponent(label1, javax.swing.GroupLayout.PREFERRED_SIZE, 240, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(72, 72, 72))))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -231,6 +248,82 @@ public class VentanaPrincipal extends javax.swing.JFrame {
             }
         }
     }//GEN-LAST:event_OpcionGuardarActionPerformed
+
+    private void OpcionErroresActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_OpcionErroresActionPerformed
+        // CREAR VENTANA
+        JFrame frameErrores = new JFrame("Reporte de Errores");
+        frameErrores.setSize(600, 400);
+        
+        // Datos de prueba
+        String[][] datos = {
+            {"1", "Lexico", "El caracter '$' no pertenece al lenguaje", "5", "3"},
+            {"2", "Lexico", "La palabra 'Def' no pertenece al lenguaje", "6", "3"},
+            {"3", "Lexico", "El caracter '#' no pertenece al lenguaje", "12", "5"}
+        };
+        
+        String[] columnas = {"#", "Tipo", "Descripcion", "Linea", "Columna"};
+        
+        JTable tabla = new JTable(datos, columnas);
+        JScrollPane scrollPane = new JScrollPane(tabla);
+        frameErrores.add(scrollPane);
+        frameErrores.setVisible(true);
+        
+    }//GEN-LAST:event_OpcionErroresActionPerformed
+
+    private void OpcionTokensActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_OpcionTokensActionPerformed
+        // CREAR VENTANA
+        JFrame frameTokens = new JFrame("Tabla de Tokens");
+        frameTokens.setSize(600, 400);
+        
+        // Si hay codigo en el editor, analizarlo y mostrar tokens
+        String codigo = txtEditor.getText();
+        if (codigo.trim().isEmpty()) {
+            JOptionPane.showMessageDialog(this, "No hay codigo para analizar");
+            return;
+        }
+        
+        try {
+            java.io.Reader reader = new java.io.StringReader(codigo);
+            eli.compiler.Lexer lexer = new eli.compiler.Lexer(reader);
+            
+            // PRIMERA PASADA: Contar tokens para crear la matriz
+            java.util.ArrayList<String[]> listaTokens = new java.util.ArrayList<>();
+            java_cup.runtime.Symbol token;
+            int contador = 1;
+            
+            listaTokens.add(new String[]{"#", "Token", "Lexema", "Linea", "Columna"});
+            
+            while ((token = lexer.next_token()).sym != eli.compiler.sym.EOF) {
+                String nombreToken = eli.compiler.sym.terminalNames[token.sym];
+                String lexema = token.value != null ? token.value.toString() : "";
+                String linea = String.valueOf(token.left);
+                String columna = String.valueOf(token.right);
+                
+               listaTokens.add(new String[]{
+                    String.valueOf(contador++),
+                    nombreToken,
+                    lexema,
+                    linea,
+                    columna
+                });
+            }
+        
+            // CONVERTIR A MATRIZ PARA LA TABLA
+            String[][] datos = listaTokens.toArray(new String[0][0]);
+            String[] columnas = datos[0]; // La primera fila son los encabezados
+            
+            // CREAR TABLA CON LOS DATOS (sin la primera fila de encabezados)
+            String[][] datosReales = java.util.Arrays.copyOfRange(datos, 1, datos.length);
+            
+            JTable tabla = new JTable(datosReales, columnas);
+            JScrollPane scrollPane = new JScrollPane(tabla);
+            frameTokens.add(scrollPane);
+            frameTokens.setVisible(true);
+            
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Error al analizar: " + e.getMessage());
+        }
+    }//GEN-LAST:event_OpcionTokensActionPerformed
     
     public static void main(String args[]) {
         try {
