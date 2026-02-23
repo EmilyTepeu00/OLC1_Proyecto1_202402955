@@ -1,5 +1,7 @@
 import java.io.File;
 import javax.swing.JFileChooser;
+import java.io.StringWriter;
+import java.io.PrintWriter;
 
 public class VentanaPrincipal extends javax.swing.JFrame {
 
@@ -51,6 +53,11 @@ public class VentanaPrincipal extends javax.swing.JFrame {
 
         botonEjecutar.setFont(new java.awt.Font("Verdana", 0, 14)); // NOI18N
         botonEjecutar.setText("EJECUTAR");
+        botonEjecutar.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                botonEjecutarActionPerformed(evt);
+            }
+        });
 
         label3.setFont(new java.awt.Font("Verdana", 1, 12)); // NOI18N
         label3.setText("CONSOLA:");
@@ -71,12 +78,27 @@ public class VentanaPrincipal extends javax.swing.JFrame {
         MenuArchivo.setText("Archivo");
 
         OpcionNuevo.setText("Nuevo");
+        OpcionNuevo.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                OpcionNuevoActionPerformed(evt);
+            }
+        });
         MenuArchivo.add(OpcionNuevo);
 
         OpcionAbrir.setText("Abrir");
+        OpcionAbrir.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                OpcionAbrirActionPerformed(evt);
+            }
+        });
         MenuArchivo.add(OpcionAbrir);
 
         OpcionGuardar.setText("Guardar");
+        OpcionGuardar.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                OpcionGuardarActionPerformed(evt);
+            }
+        });
         MenuArchivo.add(OpcionGuardar);
 
         OpcionSalir.setText("Salir");
@@ -165,14 +187,25 @@ public class VentanaPrincipal extends javax.swing.JFrame {
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
+    
+    private void OpcionSalirActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_OpcionSalirActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_OpcionSalirActionPerformed
 
-    private void OpcionNuevoActionPerformed(java.awt.event.ActionEvent evt) {
+    private void botonEjecutarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_botonEjecutarActionPerformed
+
+        txtConsola.setText("el boton esta funcionando");
+        txtOutput.setText("todo bien");
+        javax.swing.JOptionPane.showMessageDialog(this, "boton funcionandoooooo");
+    }//GEN-LAST:event_botonEjecutarActionPerformed
+
+    private void OpcionNuevoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_OpcionNuevoActionPerformed
         txtEditor.setText("");
         txtConsola.setText("");
         txtOutput.setText("");
-     }
-    
-    private void OpcionAbrirActionPerformed(java.awt.event.ActionEvent evt) {
+    }//GEN-LAST:event_OpcionNuevoActionPerformed
+
+    private void OpcionAbrirActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_OpcionAbrirActionPerformed
         JFileChooser fileChooser = new JFileChooser();
         if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
             File archivo = fileChooser.getSelectedFile();
@@ -184,9 +217,9 @@ public class VentanaPrincipal extends javax.swing.JFrame {
                 txtConsola.setText("Error al abrir archivo: " + e.getMessage());
             }
         }
-    }
-    
-    private void OpcionGuardarActionPerformed(java.awt.event.ActionEvent evt) {
+    }//GEN-LAST:event_OpcionAbrirActionPerformed
+
+    private void OpcionGuardarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_OpcionGuardarActionPerformed
         JFileChooser fileChooser = new JFileChooser();
         if (fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
             File archivo = fileChooser.getSelectedFile();
@@ -197,33 +230,7 @@ public class VentanaPrincipal extends javax.swing.JFrame {
                 txtConsola.setText("Error al guardar: " + e.getMessage());
             }
         }
-    }
-    
-    private void OpcionSalirActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_OpcionSalirActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_OpcionSalirActionPerformed
-    
-    private void botonEjecutarActionPerformed(java.awt.event.ActionEvent evt) {
-        String codigo = txtEditor.getText();
-        txtConsola.setText("Ejecutando...\n");
-    
-        try {
-            // para ver si el lexer funcionaaa
-            java.io.Reader reader = new java.io.StringReader(codigo);
-            eli.compiler.Lexer lexer = new eli.compiler.Lexer(reader);
-        
-            java_cup.runtime.Symbol token;
-            while ((token = lexer.next_token()).sym != eli.compiler.sym.EOF) {
-                txtConsola.append("Token: " + eli.compiler.sym.terminalNames[token.sym] + "\n");
-            }
-        
-            txtOutput.setText("Analisis completado exitosamente");
-        
-        } catch (Exception e) {
-            txtConsola.append("Error: " + e.getMessage());
-            txtOutput.setText("Error en el analisis");
-        }
-    }
+    }//GEN-LAST:event_OpcionGuardarActionPerformed
     
     public static void main(String args[]) {
         try {

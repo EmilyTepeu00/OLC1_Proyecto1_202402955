@@ -1,4 +1,4 @@
-// ANALIZADOR SINTACTICO
+// parser.cup - Analizador Sintáctico para ELI NOSQL (VERSIÓN SIMPLE)
 package eli.compiler;
 
 import java_cup.runtime.*;
@@ -25,12 +25,27 @@ non terminal statement_list;
 non terminal database_statement;
 non terminal use_statement;
 non terminal table_statement;
+non terminal read_statement;
+non terminal add_statement;
+non terminal update_statement;
+non terminal clear_statement;
+non terminal export_statement;
 non terminal store_statement;
-non terminal field_declaration_list;
-non terminal field_declaration;
-non terminal data_type;
+non terminal field_list;
+non terminal field;
+non terminal type;
+non terminal field_value_list;
+non terminal field_value;
+non terminal value;
+non terminal field_selector;
+non terminal filter_opt;
+non terminal assignment_list;
+non terminal assignment;
+non terminal read_body;
+non terminal update_body;
+non terminal array_value_list;
 
-// REGLAS GRAMATICALES BASICAS
+// REGLAS GRAMATICALES
 program ::= statement_list;
 
 statement_list ::= 
@@ -42,26 +57,87 @@ statement ::=
       database_statement
     | use_statement
     | table_statement
+    | read_statement
+    | add_statement
+    | update_statement
+    | clear_statement
+    | export_statement
     ;
 
+// --- DATABASE ---
 database_statement ::= DATABASE IDENTIFICADOR LBRACE store_statement RBRACE;
 
 store_statement ::= STORE AT STRING_LITERAL SEMICOLON;
 
+// --- USE ---
 use_statement ::= USE IDENTIFICADOR SEMICOLON;
 
-table_statement ::= TABLE IDENTIFICADOR LBRACE field_declaration_list RBRACE;
+// --- TABLE ---
+table_statement ::= TABLE IDENTIFICADOR LBRACE field_list RBRACE;
 
-field_declaration_list ::= 
-      field_declaration_list field_declaration
-    | field_declaration
+field_list ::= 
+      field_list field
+    | field
     ;
 
-field_declaration ::= IDENTIFICADOR COLON data_type SEMICOLON;
+field ::= IDENTIFICADOR COLON type SEMICOLON;
 
-data_type ::= 
+type ::= 
       INT
     | FLOAT
     | STRING
     | BOOL
     ;
+
+// --- READ ---
+read_statement ::= READ IDENTIFICADOR LBRACE read_body RBRACE SEMICOLON;
+
+read_body ::= 
+      FIELDS COLON field_selector SEMICOLON filter_opt
+    | FIELDS COLON STAR SEMICOLON filter_opt
+    ;
+
+field_selector ::= 
+      field_selector COMMA IDENTIFICADOR
+    | IDENTIFICADOR
+    ;
+
+filter_opt ::= 
+      FILTER COLON IDENTIFICADOR EQ value SEMICOLON
+    | /* empty */
+    ;
+
+// --- ADD ---
+add_statement ::= ADD IDENTIFICADOR LBRACE field_value_list RBRACE SEMICOLON;
+
+field_value_list ::= 
+      field_value_list COMMA field_value
+    | field_value
+    ;
+
+field_value ::= IDENTIFICADOR COLON value;
+
+value ::= 
+      ENTERO
+    | DECIMAL
+    | STRING_LITERAL
+    | BOOLEAN
+    ;
+
+// --- UPDATE ---
+update_statement ::= UPDATE IDENTIFICADOR LBRACE update_body RBRACE SEMICOLON;
+
+update_body ::= SET COLON assignment_list SEMICOLON filter_opt;
+
+assignment_list ::= 
+      assignment_list COMMA assignment
+    | assignment
+    ;
+
+assignment ::= IDENTIFICADOR ASSIGN value;
+
+// --- CLEAR ---
+clear_statement ::= CLEAR IDENTIFICADOR SEMICOLON;
+
+// --- EXPORT ---
+export_statement ::= EXPORT STRING_LITERAL SEMICOLON;
