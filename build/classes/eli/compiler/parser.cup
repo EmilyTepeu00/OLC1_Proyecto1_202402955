@@ -1,0 +1,67 @@
+// ANALIZADOR SINTACTICO
+package eli.compiler;
+
+import java_cup.runtime.*;
+import java.util.*;
+
+// TERMINALES (TOKENS)
+terminal           DATABASE, TABLE, READ, ADD, UPDATE, EXPORT, USE, CLEAR;      // Palabras reservadas de ELI
+terminal           FIELDS, FILTER, SET, STORE, AT;                              // Palabras para clausulas internas
+terminal           INT, FLOAT, STRING, BOOL;                                    // Tipos de datos (tablas)
+terminal           EQ, NEQ, GT, LT, GTE, LTE;                                   // Operadores relacionales (filtros)
+terminal           AND, OR, NOT;                                                // Operadores logicos
+terminal           LBRACE, RBRACE, LPAREN, RPAREN, LBRACKET, RBRACKET;          // Signos de agrupacion y puntuacion
+terminal           SEMICOLON, COLON, COMMA, DOT, ASSIGN, STAR;
+terminal           IDENTIFICADOR;                                               // Identificadores y valores
+terminal Integer   ENTERO;
+terminal Double    DECIMAL;
+terminal String    STRING_LITERAL;
+terminal Boolean   BOOLEAN;
+
+// NO TERMINALES
+non terminal program;
+non terminal statement;
+non terminal statement_list;
+non terminal database_statement;
+non terminal use_statement;
+non terminal table_statement;
+non terminal store_statement;
+non terminal field_declaration_list;
+non terminal field_declaration;
+non terminal data_type;
+
+// REGLAS GRAMATICALES BASICAS
+program ::= statement_list;
+
+statement_list ::= 
+      statement_list statement
+    | statement
+    ;
+
+statement ::= 
+      database_statement
+    | use_statement
+    | table_statement
+    ;
+
+database_statement ::= DATABASE IDENTIFICADOR LBRACE store_statement RBRACE;
+
+store_statement ::= STORE AT STRING_LITERAL SEMICOLON;
+
+use_statement ::= USE IDENTIFICADOR SEMICOLON;
+
+table_statement ::= TABLE IDENTIFICADOR LBRACE field_declaration_list RBRACE;
+
+field_declaration_list ::= 
+      field_declaration_list field_declaration
+    | field_declaration
+    ;
+
+field_declaration ::= IDENTIFICADOR COLON data_type SEMICOLON;
+
+data_type ::= 
+      INT
+    | FLOAT
+    | STRING
+    | BOOL
+    ;

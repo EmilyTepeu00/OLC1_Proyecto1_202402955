@@ -6,6 +6,7 @@ import java_cup.runtime.*;
 
 %%
 
+%public
 %class Lexer
 %cup
 %line

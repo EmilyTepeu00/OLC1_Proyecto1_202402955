@@ -22,7 +22,13 @@ terminal Boolean   BOOLEAN;
 non terminal program;
 non terminal statement;
 non terminal statement_list;
+non terminal database_statement;
+non terminal use_statement;
+non terminal table_statement;
 non terminal store_statement;
+non terminal field_declaration_list;
+non terminal field_declaration;
+non terminal data_type;
 
 // REGLAS GRAMATICALES BASICAS
 program ::= statement_list;
@@ -33,8 +39,29 @@ statement_list ::=
     ;
 
 statement ::= 
-      DATABASE IDENTIFICADOR LBRACE store_statement RBRACE
-    | USE IDENTIFICADOR SEMICOLON
+      database_statement
+    | use_statement
+    | table_statement
     ;
 
+database_statement ::= DATABASE IDENTIFICADOR LBRACE store_statement RBRACE;
+
 store_statement ::= STORE AT STRING_LITERAL SEMICOLON;
+
+use_statement ::= USE IDENTIFICADOR SEMICOLON;
+
+table_statement ::= TABLE IDENTIFICADOR LBRACE field_declaration_list RBRACE;
+
+field_declaration_list ::= 
+      field_declaration_list field_declaration
+    | field_declaration
+    ;
+
+field_declaration ::= IDENTIFICADOR COLON data_type SEMICOLON;
+
+data_type ::= 
+      INT
+    | FLOAT
+    | STRING
+    | BOOL
+    ;
