@@ -8,6 +8,9 @@ import javax.swing.JScrollPane;
 import javax.swing.JOptionPane;
 
 public class VentanaPrincipal extends javax.swing.JFrame {
+    
+    // Lista para guardar errores durante el analisis
+    private java.util.ArrayList<String[]> listaErrores = new java.util.ArrayList<>();
 
     public VentanaPrincipal() {
         initComponents();
@@ -211,17 +214,18 @@ public class VentanaPrincipal extends javax.swing.JFrame {
 
     private void botonEjecutarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_botonEjecutarActionPerformed
         String codigo = txtEditor.getText();
-        txtConsola.setText("");  // Limpiar consola
-        txtOutput.setText("");   // Limpiar output
-    
+        txtConsola.setText(""); // Limpiar consola
+        txtOutput.setText(""); // Limpiar output
+        listaErrores.clear(); // Limpiar errores anteriores
+        
         if (codigo.trim().isEmpty()) {
             txtConsola.setText("No hay codigo para ejecutar");
             return;
         }
-    
+        
         txtConsola.append("EJECUTANDO CODIGO ELI...\n");
         txtConsola.append("========================================\n\n");
-        
+    
         try {
             // MOSTRAR CODIGO EN CONSOLA
             txtConsola.append("CODIGO FUENTE:\n");
@@ -231,34 +235,71 @@ public class VentanaPrincipal extends javax.swing.JFrame {
             }
             txtConsola.append("\n========================================\n\n");
             
-            // ANALIZAR CON EL LEXER PARA CONTAR TOKENS
+            // REDIRIGIR System.err PARA CAPTURAR ERRORES
+            java.io.ByteArrayOutputStream errStream = new java.io.ByteArrayOutputStream();
+            java.io.PrintStream errPrint = new java.io.PrintStream(errStream);
+            java.io.PrintStream originalErr = System.err;
+            System.setErr(errPrint);
+            
+            // ANALIZAR CON EL LEXER
+            txtConsola.append("ANALISIS LEXICO:\n");
             java.io.Reader reader = new java.io.StringReader(codigo);
             eli.compiler.Lexer lexer = new eli.compiler.Lexer(reader);
             
-            txtConsola.append("ANALISIS LEXICO:\n");
             java_cup.runtime.Symbol token;
             int contadorTokens = 0;
-            int contadorErrores = 0;
             
             while ((token = lexer.next_token()).sym != eli.compiler.sym.EOF) {
                 contadorTokens++;
                 String nombreToken = eli.compiler.sym.terminalNames[token.sym];
-                txtConsola.append(String.format("   Token %3d: %-20s", contadorTokens, nombreToken));
                 if (token.value != null) {
-                    txtConsola.append(" → " + token.value);
+                    txtConsola.append(String.format("   Token %3d: %-20s → %s\n", 
+                        contadorTokens, nombreToken, token.value));
                 }
-                txtConsola.append("\n");
-            }   
+            }
+            
+            // RESTAURAR System.err
+            System.setErr(originalErr);
+            
+            // PROCESAR ERRORES CAPTURADOS
+            String erroresCapturados = errStream.toString();
+            if (!erroresCapturados.isEmpty()) {
+                String[] lineasError = erroresCapturados.split("\n");
+                for (String error : lineasError) {
+                    if (error.contains("Error lExico")) {
+                        // PARSEAR EL ERROR Y SEPARAR SUS PARTES
+                        String[] partes = error.split("'");
+                        String caracter = partes.length > 1 ? partes[1] : "?";
+                        
+                        // EXTRAER LINEA Y COLUMNA
+                        int linea = 0, columna = 0;
+                        java.util.regex.Pattern p = java.util.regex.Pattern.compile("linea (\\d+), columna (\\d+)");
+                        java.util.regex.Matcher m = p.matcher(error);
+                        if (m.find()) {
+                            linea = Integer.parseInt(m.group(1));
+                            columna = Integer.parseInt(m.group(2));
+                        }
+                        
+                        listaErrores.add(new String[]{
+                            String.valueOf(listaErrores.size() + 1),
+                            "Lexico",
+                            "Caracter invalido: '" + caracter + "'",
+                            String.valueOf(linea),
+                            String.valueOf(columna)
+                        });
+                    }
+                }
+                txtConsola.append("\nSe encontraron " + listaErrores.size() + " errores lexicos\n");
+            }
         
             txtConsola.append("\nTotal de tokens: " + contadorTokens + "\n");
             txtConsola.append("\n========================================\n");
             txtConsola.append("ANALISIS COMPLETADO\n");
             
-            // mensaje de output porque falta
             txtOutput.setText("Analisis completado con exito\n" +
                              "Tokens encontrados: " + contadorTokens + "\n" +
-                             "Estructura valida");
-        
+                             "Errores encontrados: " + listaErrores.size());
+            
         } catch (Exception e) {
             txtConsola.append("\nERROR DURANTE EL ANALISIS:\n");
             txtConsola.append("   " + e.getMessage() + "\n");
@@ -301,19 +342,18 @@ public class VentanaPrincipal extends javax.swing.JFrame {
     }//GEN-LAST:event_OpcionGuardarActionPerformed
 
     private void OpcionErroresActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_OpcionErroresActionPerformed
+        if (listaErrores.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "No hay errores para mostrar");
+            return;
+        }
+    
         // CREAR VENTANA
         JFrame frameErrores = new JFrame("Reporte de Errores");
         frameErrores.setSize(600, 400);
-        
-        // Datos de prueba
-        String[][] datos = {
-            {"1", "Lexico", "El caracter '$' no pertenece al lenguaje", "5", "3"},
-            {"2", "Lexico", "La palabra 'Def' no pertenece al lenguaje", "6", "3"},
-            {"3", "Lexico", "El caracter '#' no pertenece al lenguaje", "12", "5"}
-        };
-        
+    
+        String[][] datos = listaErrores.toArray(new String[0][0]);
         String[] columnas = {"#", "Tipo", "Descripcion", "Linea", "Columna"};
-        
+    
         JTable tabla = new JTable(datos, columnas);
         JScrollPane scrollPane = new JScrollPane(tabla);
         frameErrores.add(scrollPane);

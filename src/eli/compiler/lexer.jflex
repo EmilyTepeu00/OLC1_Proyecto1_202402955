@@ -97,11 +97,14 @@ Espacio = [ \t\r\n\f]
 {Identificador} { return symbol(sym.IDENTIFICADOR, yytext()); }
 
 // IGNORAR COMENTARIOS
-{ComentarioLinea}       { /* ignorar */ }
-{ComentarioMultilinea}  { /* ignorar */ }
+"##" [^\n]*                  { /* ignorar comentario de linea */ }
+"#*" ~"*#"                   { /* ignorar comentario multilinea */ }
+"#*" [^*]* ~"*#"             { /* ignorar comentario multilinea */ }
 
 // IGNORAR ESPACIOS EN BLANCO
-{Espacio}+      { /* ignorar */ }
+[ \t\r\n\f]+       { /* ignorar */ }
 
 // ERRORES LEXICOS
-.               { System.err.println("Error lexico: Caracter invalido '" + yytext() + "' en linea " + (yyline+1) + ", columna " + (yycolumn+1)); }
+.                            { 
+    System.err.println("Error lexico: Caracter invalido '" + yytext() + "' en linea " + (yyline+1) + ", columna " + (yycolumn+1)); 
+}
