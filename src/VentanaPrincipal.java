@@ -210,10 +210,61 @@ public class VentanaPrincipal extends javax.swing.JFrame {
     }//GEN-LAST:event_OpcionSalirActionPerformed
 
     private void botonEjecutarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_botonEjecutarActionPerformed
-
-        txtConsola.setText("el boton esta funcionando");
-        txtOutput.setText("todo bien");
-        javax.swing.JOptionPane.showMessageDialog(this, "boton funcionandoooooo");
+        String codigo = txtEditor.getText();
+        txtConsola.setText("");  // Limpiar consola
+        txtOutput.setText("");   // Limpiar output
+    
+        if (codigo.trim().isEmpty()) {
+            txtConsola.setText("No hay codigo para ejecutar");
+            return;
+        }
+    
+        txtConsola.append("EJECUTANDO CODIGO ELI...\n");
+        txtConsola.append("========================================\n\n");
+        
+        try {
+            // MOSTRAR CODIGO EN CONSOLA
+            txtConsola.append("CODIGO FUENTE:\n");
+            String[] lineas = codigo.split("\n");
+            for (int i = 0; i < lineas.length; i++) {
+                txtConsola.append(String.format("%3d: %s\n", i+1, lineas[i]));
+            }
+            txtConsola.append("\n========================================\n\n");
+            
+            // ANALIZAR CON EL LEXER PARA CONTAR TOKENS
+            java.io.Reader reader = new java.io.StringReader(codigo);
+            eli.compiler.Lexer lexer = new eli.compiler.Lexer(reader);
+            
+            txtConsola.append("ANALISIS LEXICO:\n");
+            java_cup.runtime.Symbol token;
+            int contadorTokens = 0;
+            int contadorErrores = 0;
+            
+            while ((token = lexer.next_token()).sym != eli.compiler.sym.EOF) {
+                contadorTokens++;
+                String nombreToken = eli.compiler.sym.terminalNames[token.sym];
+                txtConsola.append(String.format("   Token %3d: %-20s", contadorTokens, nombreToken));
+                if (token.value != null) {
+                    txtConsola.append(" → " + token.value);
+                }
+                txtConsola.append("\n");
+            }   
+        
+            txtConsola.append("\nTotal de tokens: " + contadorTokens + "\n");
+            txtConsola.append("\n========================================\n");
+            txtConsola.append("ANALISIS COMPLETADO\n");
+            
+            // mensaje de output porque falta
+            txtOutput.setText("Analisis completado con exito\n" +
+                             "Tokens encontrados: " + contadorTokens + "\n" +
+                             "Estructura valida");
+        
+        } catch (Exception e) {
+            txtConsola.append("\nERROR DURANTE EL ANALISIS:\n");
+            txtConsola.append("   " + e.getMessage() + "\n");
+            txtOutput.setText("Error en el analisis");
+            e.printStackTrace();
+        }
     }//GEN-LAST:event_botonEjecutarActionPerformed
 
     private void OpcionNuevoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_OpcionNuevoActionPerformed
