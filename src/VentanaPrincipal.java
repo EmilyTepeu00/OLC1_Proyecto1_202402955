@@ -6,6 +6,8 @@ import javax.swing.JFrame;
 import javax.swing.JTable;
 import javax.swing.JScrollPane;
 import javax.swing.JOptionPane;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 
 public class VentanaPrincipal extends javax.swing.JFrame {
     
@@ -218,6 +220,24 @@ public class VentanaPrincipal extends javax.swing.JFrame {
         txtOutput.setText(""); // Limpiar output
         listaErrores.clear(); // Limpiar errores anteriores
         
+        // VERIFICAR SI HAY DATABASE
+        if (codigo.contains("database") && codigo.contains("store at")) {
+            // Ectraer nombre y ruta de la base de datos
+            java.util.regex.Pattern p = java.util.regex.Pattern.compile("database\\s+(\\w+)\\s*\\{\\s*store\\s+at\\s+\"([^\"]+)\"\\s*;\\s*\\}");
+            java.util.regex.Matcher m = p.matcher(codigo);
+            
+            if (m.find()) {
+                String nombreBD = m.group(1);
+                String rutaJSON = m.group(2);
+                
+                eli.compiler.GestorJSON gestor = new eli.compiler.GestorJSON(rutaJSON);
+                gestor.setNombreBase(nombreBD);
+                gestor.guardar();
+        
+                txtConsola.append("Base de datos guardada en: " + rutaJSON + "\n");
+            }
+        }
+        
         if (codigo.trim().isEmpty()) {
             txtConsola.setText("No hay codigo para ejecutar");
             return;
@@ -266,7 +286,7 @@ public class VentanaPrincipal extends javax.swing.JFrame {
             if (!erroresCapturados.isEmpty()) {
                 String[] lineasError = erroresCapturados.split("\n");
                 for (String error : lineasError) {
-                    if (error.contains("Error lExico")) {
+                    if (error.contains("Error lexico")) {
                         // PARSEAR EL ERROR Y SEPARAR SUS PARTES
                         String[] partes = error.split("'");
                         String caracter = partes.length > 1 ? partes[1] : "?";
