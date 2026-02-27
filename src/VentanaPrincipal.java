@@ -8,6 +8,8 @@ import javax.swing.JScrollPane;
 import javax.swing.JOptionPane;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
+import java.io.*;
+import java.util.*;
 
 public class VentanaPrincipal extends javax.swing.JFrame {
     
@@ -233,6 +235,7 @@ public class VentanaPrincipal extends javax.swing.JFrame {
                 eli.compiler.GestorJSON gestor = new eli.compiler.GestorJSON(rutaJSON);
                 gestor.setNombreBase(nombreBD);
                 gestor.guardar();
+                procesarInstrucciones(codigo, gestor);
         
                 txtConsola.append("Base de datos guardada en: " + rutaJSON + "\n");
             }
@@ -435,6 +438,71 @@ public class VentanaPrincipal extends javax.swing.JFrame {
             JOptionPane.showMessageDialog(this, "Error al analizar: " + e.getMessage());
         }
     }//GEN-LAST:event_OpcionTokensActionPerformed
+    
+    // PROESAR INSTRUCCIONES DE TABLA Y ADD
+    private void procesarInstrucciones(String codigo, eli.compiler.GestorJSON gestor) {
+        // BUSCAR TABLAS
+        java.util.regex.Pattern pTable = java.util.regex.Pattern.compile("table\\s+(\\w+)\\s*\\{([^}]+)\\}");
+        java.util.regex.Matcher mTable = pTable.matcher(codigo);
+    
+        while (mTable.find()) {
+            String nombreTabla = mTable.group(1);
+            String camposStr = mTable.group(2);
+        
+            Map<String, String> esquema = new HashMap<>();
+            String[] lineas = camposStr.split(";");
+            for (String linea : lineas) {
+                linea = linea.trim();
+                if (linea.isEmpty()) continue;
+            
+                String[] partes = linea.split(":");
+                if (partes.length == 2) {
+                    String campo = partes[0].trim();
+                    String tipo = partes[1].trim();
+                    esquema.put(campo, tipo);
+                }
+            }
+        
+            gestor.agregarTabla(nombreTabla, esquema);
+            txtConsola.append("Tabla creada: " + nombreTabla + "\n");
+        }
+    
+        // BUSCAR ADDS
+        java.util.regex.Pattern pAdd = java.util.regex.Pattern.compile("add\\s+(\\w+)\\s*\\{([^}]+)\\}");
+        java.util.regex.Matcher mAdd = pAdd.matcher(codigo);
+    
+        while (mAdd.find()) {
+            String nombreTabla = mAdd.group(1);
+            String valoresStr = mAdd.group(2);
+        
+            Map<String, Object> registro = new HashMap<>();
+            String[] campos = valoresStr.split(",");
+            for (String campo : campos) {
+                campo = campo.trim();
+                String[] partes = campo.split(":");
+                if (partes.length == 2) {
+                    String nombreCampo = partes[0].trim();
+                    String valorStr = partes[1].trim();
+                
+                    // Detectar tipo de valor
+                    if (valorStr.startsWith("\"")) {
+                        registro.put(nombreCampo, valorStr.replace("\"", ""));
+                    } else if (valorStr.equals("true") || valorStr.equals("false")) {
+                        registro.put(nombreCampo, Boolean.parseBoolean(valorStr));
+                    } else if (valorStr.matches("\\d+")) {
+                        registro.put(nombreCampo, Integer.parseInt(valorStr));
+                    } else if (valorStr.matches("\\d+\\.\\d+")) {
+                        registro.put(nombreCampo, Double.parseDouble(valorStr));
+                    } else {
+                        registro.put(nombreCampo, valorStr);
+                    }
+                }
+            }
+        
+            gestor.agregarRegistro(nombreTabla, registro);
+            txtConsola.append("Registro agregado a: " + nombreTabla + "\n");
+        }
+    }
     
     public static void main(String args[]) {
         try {

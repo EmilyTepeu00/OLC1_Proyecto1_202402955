@@ -11,26 +11,19 @@ public class GestorJSON {
     public GestorJSON(String ruta) {
         this.rutaArchivo = ruta;
         this.baseDatos = new HashMap<>();
+        cargar(); // Para cargar datos existentes si hay
     }
     
     // GUARDAR LA BASE DE DATOS EN UN ARCHIVO JSON
     public void guardar() {
         try {
-            // Crear el objeto JSON
-            Map<String, Object> json = new HashMap<>();
-            json.put("database", baseDatos.get("nombre"));
-            json.put("tables", baseDatos.get("tablas"));
-            
-            // Convertir a string JSON
-            String jsonString = convertirAJSON(json);
-            
             // Escribir archivo
             FileWriter writer = new FileWriter(rutaArchivo);
-            writer.write(jsonString);
+            writer.write(convertirAJSON());
             writer.close();
-            
+            System.out.println("Base de datos guardada en: " + rutaArchivo);
         } catch (Exception e) {
-            e.printStackTrace();
+            System.out.println("Error al guardar JSON: " + e.getMessage());
         }
     }
     
@@ -38,34 +31,88 @@ public class GestorJSON {
     public void cargar() {
         try {
             FileReader reader = new FileReader(rutaArchivo);
-            // faltaaaaaaaa parseaaaaaaaaar el json
+            Scanner scanner = new Scanner(reader);
+            StringBuilder contenido = new StringBuilder();
+            while (scanner.hasNextLine()) {
+                contenido.append(scanner.nextLine());
+            }
+            scanner.close();
             reader.close();
+            
+            // falta que el parser funcioneeeeee
+            if (contenido.toString().contains("database")) {
+                System.out.println("Base de datos cargada desde: " + rutaArchivo);
+            }         
         } catch (Exception e) {
-            // el archivo aun no existe
+            // El archivo no existe y se empieza vacio
+            System.out.println("Creando nueva base de datos en: " + rutaArchivo);
         }
     }
     
     // CONVERTIR A JSON
-    private String convertirAJSON(Map<String, Object> mapa) {
+    private String convertirAJSON() {
         StringBuilder sb = new StringBuilder();
         sb.append("{\n");
+        sb.append("  \"database\": \"").append(baseDatos.getOrDefault("nombre", "unknown")).append("\",\n");
+        sb.append("  \"tables\": {\n");
         
-        for (Map.Entry<String, Object> entry : mapa.entrySet()) {
-            sb.append("  \"").append(entry.getKey()).append("\": ");
-            if (entry.getValue() instanceof Map) {
-                sb.append(convertirAJSON((Map)entry.getValue()));
-            } else if (entry.getValue() instanceof String) {
-                sb.append("\"").append(entry.getValue()).append("\"");
-            } else {
-                sb.append(entry.getValue());
+        Map<String, Map<String, Object>> tablas = (Map<String, Map<String, Object>>) baseDatos.get("tablas");
+        if (tablas != null) {
+            int tablaCount = 0;
+            for (Map.Entry<String, Map<String, Object>> entry : tablas.entrySet()) {
+                tablaCount++;
+                sb.append("    \"").append(entry.getKey()).append("\": {\n");
+                
+                Map<String, Object> tabla = entry.getValue();
+                
+                // SCHEMA
+                sb.append("      \"schema\": {\n");
+                Map<String, String> schema = (Map<String, String>) tabla.get("schema");
+                int fieldCount = 0;
+                for (Map.Entry<String, String> field : schema.entrySet()) {
+                    fieldCount++;
+                    sb.append("        \"").append(field.getKey()).append("\": \"").append(field.getValue()).append("\"");
+                    if (fieldCount < schema.size()) sb.append(",");
+                    sb.append("\n");
+                }
+                sb.append("      },\n");
+                
+                // RECORDS
+                sb.append("      \"records\": [\n");
+                List<Map<String, Object>> records = (List<Map<String, Object>>) tabla.get("records");
+                if (records != null) {
+                    int recordCount = 0;
+                    for (Map<String, Object> record : records) {
+                        recordCount++;
+                        sb.append("        {\n");
+                        int valueCount = 0;
+                        for (Map.Entry<String, Object> field : record.entrySet()) {
+                            valueCount++;
+                            sb.append("          \"").append(field.getKey()).append("\": ");
+                            if (field.getValue() instanceof String) {
+                                sb.append("\"").append(field.getValue()).append("\"");
+                            } else {
+                                sb.append(field.getValue());
+                            }
+                            if (valueCount < record.size()) sb.append(",");
+                            sb.append("\n");
+                        }
+                        sb.append("        }");
+                        if (recordCount < records.size()) sb.append(",");
+                        sb.append("\n");
+                    }
+                }
+                sb.append("      ]\n");
+                sb.append("    }");
+                if (tablaCount < tablas.size()) sb.append(",");
+                sb.append("\n");
             }
-            sb.append(",\n");
+        } else {
+            sb.append("    {}\n");
         }
         
-        if (sb.length() > 2) {
-            sb.setLength(sb.length() - 2); // Quitar la ultima coma
-        }
-        sb.append("\n}");
+        sb.append("  }\n");
+        sb.append("}\n");
         return sb.toString();
     }
     
@@ -75,7 +122,7 @@ public class GestorJSON {
     }
     
     public void agregarTabla(String nombre, Map<String, String> esquema) {
-        Map<String, Object> tablas = (Map<String, Object>) baseDatos.get("tablas");
+        Map<String, Map<String, Object>> tablas = (Map<String, Map<String, Object>>) baseDatos.get("tablas");
         if (tablas == null) {
             tablas = new HashMap<>();
             baseDatos.put("tablas", tablas);
@@ -86,5 +133,15 @@ public class GestorJSON {
         tabla.put("records", new ArrayList<>());
         
         tablas.put(nombre, tabla);
+        guardar(); // Guardar automaticamente
+    }
+    
+    public void agregarRegistro(String tabla, Map<String, Object> registro) {
+        Map<String, Map<String, Object>> tablas = (Map<String, Map<String, Object>>) baseDatos.get("tablas");
+        if (tablas != null && tablas.containsKey(tabla)) {
+            List<Map<String, Object>> records = (List<Map<String, Object>>) tablas.get(tabla).get("records");
+            records.add(registro);
+            guardar(); // Guardar automaticamente
+        }
     }
 }
