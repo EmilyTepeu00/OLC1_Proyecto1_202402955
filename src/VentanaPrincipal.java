@@ -222,6 +222,9 @@ public class VentanaPrincipal extends javax.swing.JFrame {
         txtOutput.setText(""); // Limpiar output
         listaErrores.clear(); // Limpiar errores anteriores
         
+        // Declarar gestor
+        eli.compiler.GestorJSON gestor = null;
+        
         // VERIFICAR SI HAY DATABASE
         if (codigo.contains("database") && codigo.contains("store at")) {
             // Ectraer nombre y ruta de la base de datos
@@ -232,11 +235,9 @@ public class VentanaPrincipal extends javax.swing.JFrame {
                 String nombreBD = m.group(1);
                 String rutaJSON = m.group(2);
                 
-                eli.compiler.GestorJSON gestor = new eli.compiler.GestorJSON(rutaJSON);
+                gestor = new eli.compiler.GestorJSON(rutaJSON);
                 gestor.setNombreBase(nombreBD);
                 gestor.guardar();
-                procesarInstrucciones(codigo, gestor);
-        
                 txtConsola.append("Base de datos guardada en: " + rutaJSON + "\n");
             }
         }
@@ -278,6 +279,9 @@ public class VentanaPrincipal extends javax.swing.JFrame {
                 if (token.value != null) {
                     txtConsola.append(String.format("   Token %3d: %-20s → %s\n", 
                         contadorTokens, nombreToken, token.value));
+                } else {
+                    txtConsola.append(String.format("   Token %3d: %-20s\n", 
+                        contadorTokens, nombreToken));
                 }
             }
             
@@ -313,6 +317,12 @@ public class VentanaPrincipal extends javax.swing.JFrame {
                     }
                 }
                 txtConsola.append("\nSe encontraron " + listaErrores.size() + " errores lexicos\n");
+            }
+            
+            // PROCESAR INSTRUCCIONES SI HAY GESTOR (tablas, adds, reads)
+            if (gestor != null) {
+                procesarInstrucciones(codigo, gestor);
+                procesarRead(codigo, gestor);
             }
         
             txtConsola.append("\nTotal de tokens: " + contadorTokens + "\n");
@@ -501,6 +511,83 @@ public class VentanaPrincipal extends javax.swing.JFrame {
         
             gestor.agregarRegistro(nombreTabla, registro);
             txtConsola.append("Registro agregado a: " + nombreTabla + "\n");
+        }
+    }
+    
+    // PROCESAR INSTRUCCIONES READ
+    private void procesarRead(String codigo, eli.compiler.GestorJSON gestor) {
+        java.util.regex.Pattern pRead = java.util.regex.Pattern.compile(
+            "read\\s+(\\w+)\\s*\\{\\s*fields:\\s*([^;]+);\\s*(?:filter:\\s*(.+?)\\s*;)?\\s*\\}"
+        );
+        java.util.regex.Matcher mRead = pRead.matcher(codigo);
+        
+        while (mRead.find()) {
+            String nombreTabla = mRead.group(1);
+            String camposStr = mRead.group(2).trim();
+            String filterStr = mRead.group(3);
+            
+            // Determinar campos a mostrar
+            String[] camposMostrar;
+            if (camposStr.equals("*")) {
+                Map<String, String> schema = gestor.getSchema(nombreTabla);
+                camposMostrar = schema.keySet().toArray(new String[0]);
+            } else {
+                camposMostrar = camposStr.split("\\s*,\\s*");
+            }
+        
+            // Procesar filtro si existe
+            List<Map<String, Object>> resultados;
+            if (filterStr != null && !filterStr.isEmpty()) {
+                // Parsear filter
+                String[] filterParts = filterStr.trim().split("\\s+");
+                if (filterParts.length == 3) {
+                    String campo = filterParts[0];
+                    String operador = filterParts[1];
+                    String valorStr = filterParts[2];
+                    
+                    // Convertir valor segun tipo
+                    Object valor;
+                    if (valorStr.startsWith("\"")) {
+                        valor = valorStr.replace("\"", "");
+                    } else if (valorStr.equals("true") || valorStr.equals("false")) {
+                        valor = Boolean.parseBoolean(valorStr);
+                    } else if (valorStr.matches("\\d+")) {
+                        valor = Integer.parseInt(valorStr);
+                    } else if (valorStr.matches("\\d+\\.\\d+")) {
+                        valor = Double.parseDouble(valorStr);
+                    } else {
+                        valor = valorStr;
+                    }
+                
+                    resultados = gestor.consultar(nombreTabla, campo, operador, valor);
+                } else {
+                    resultados = gestor.consultar(nombreTabla, null, null, null);
+                }
+            } else {
+                resultados = gestor.consultar(nombreTabla, null, null, null);
+            }
+        
+            // Mostrar resultados
+            txtOutput.append("\nRESULTADOS DE READ: " + nombreTabla + "\n");
+            txtOutput.append("====================================\n");
+            
+            // Mostrar encabezados
+            for (String campo : camposMostrar) {
+                txtOutput.append(String.format("%-15s", campo));
+            }
+            txtOutput.append("\n");
+            txtOutput.append("------------------------------------\n");
+            
+            // Mostrar registros
+            for (Map<String, Object> record : resultados) {
+                for (String campo : camposMostrar) {
+                    Object valor = record.get(campo);
+                    txtOutput.append(String.format("%-15s", valor != null ? valor.toString() : "null"));
+                }
+                txtOutput.append("\n");
+            }
+            txtOutput.append("====================================\n");
+            txtOutput.append("Total: " + resultados.size() + " registros\n\n");
         }
     }
     
