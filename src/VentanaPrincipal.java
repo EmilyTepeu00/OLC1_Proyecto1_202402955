@@ -16,6 +16,11 @@ public class VentanaPrincipal extends javax.swing.JFrame {
     // Lista para guardar errores durante el analisis
     private java.util.ArrayList<String[]> listaErrores = new java.util.ArrayList<>();
 
+    // Variables para EXPORT
+    private List<Map<String, Object>> ultimosResultados = null;
+    private String[] ultimosCampos = null;
+    private String ultimaTabla = null;
+    
     public VentanaPrincipal() {
         initComponents();
     }
@@ -317,14 +322,20 @@ public class VentanaPrincipal extends javax.swing.JFrame {
                     }
                 }
                 txtConsola.append("\nSe encontraron " + listaErrores.size() + " errores lexicos\n");
-            }
+            } 
             
             // PROCESAR INSTRUCCIONES SI HAY GESTOR (tablas, adds, reads)
             if (gestor != null) {
                 procesarInstrucciones(codigo, gestor);
                 procesarRead(codigo, gestor);
             }
-        
+            
+            // Procesar UPDATE y EXPORT
+            if (gestor != null){
+                procesarUpdate(codigo, gestor);
+            }
+            procesarExport(codigo);
+            
             txtConsola.append("\nTotal de tokens: " + contadorTokens + "\n");
             txtConsola.append("\n========================================\n");
             txtConsola.append("ANALISIS COMPLETADO\n");
@@ -530,6 +541,10 @@ public class VentanaPrincipal extends javax.swing.JFrame {
             String[] camposMostrar;
             if (camposStr.equals("*")) {
                 Map<String, String> schema = gestor.getSchema(nombreTabla);
+                if (schema == null) {
+                    txtOutput.append("Error: Tabla '" + nombreTabla + "' no existe\n");
+                    continue;
+                }
                 camposMostrar = schema.keySet().toArray(new String[0]);
             } else {
                 camposMostrar = camposStr.split("\\s*,\\s*");
@@ -544,8 +559,8 @@ public class VentanaPrincipal extends javax.swing.JFrame {
                     String campo = filterParts[0];
                     String operador = filterParts[1];
                     String valorStr = filterParts[2];
-                    
-                    // Convertir valor segun tipo
+                
+                    // Convertir valor segun el tipo
                     Object valor;
                     if (valorStr.startsWith("\"")) {
                         valor = valorStr.replace("\"", "");
@@ -566,8 +581,13 @@ public class VentanaPrincipal extends javax.swing.JFrame {
             } else {
                 resultados = gestor.consultar(nombreTabla, null, null, null);
             }
+            
+            // Guardar resultados para el export
+            ultimosResultados = resultados;
+            ultimosCampos = camposMostrar;
+            ultimaTabla = nombreTabla;
         
-            // Mostrar resultados
+            // Mostrar resultados en OUTPUT
             txtOutput.append("\nRESULTADOS DE READ: " + nombreTabla + "\n");
             txtOutput.append("====================================\n");
             
@@ -579,15 +599,116 @@ public class VentanaPrincipal extends javax.swing.JFrame {
             txtOutput.append("------------------------------------\n");
             
             // Mostrar registros
-            for (Map<String, Object> record : resultados) {
-                for (String campo : camposMostrar) {
-                    Object valor = record.get(campo);
-                    txtOutput.append(String.format("%-15s", valor != null ? valor.toString() : "null"));
+            if (resultados.isEmpty()) {
+                txtOutput.append("   No se encontraron registros\n");
+            } else {
+                for (Map<String, Object> record : resultados) {
+                    for (String campo : camposMostrar) {
+                        Object valor = record.get(campo);
+                        txtOutput.append(String.format("%-15s", valor != null ? valor.toString() : "null"));
+                    }
+                    txtOutput.append("\n");
                 }
-                txtOutput.append("\n");
             }
-            txtOutput.append("====================================\n");
+            txtOutput.append("========================================\n");
             txtOutput.append("Total: " + resultados.size() + " registros\n\n");
+        }
+    }
+    
+    // PROCESAR INSTRUCCIONES UPDATE
+    private void procesarUpdate(String codigo, eli.compiler.GestorJSON gestor) {
+        java.util.regex.Pattern pUpdate = java.util.regex.Pattern.compile(
+            "update\\s+(\\w+)\\s*\\{\\s*set:\\s*([^;]+);\\s*(?:filter:\\s*(.+?)\\s*;)?\\s*\\}"
+        );
+        java.util.regex.Matcher mUpdate = pUpdate.matcher(codigo);
+        
+        while (mUpdate.find()) {
+            String nombreTabla = mUpdate.group(1);
+            String setStr = mUpdate.group(2).trim();
+            String filterStr = mUpdate.group(3);
+            
+            // Parsear SET (campo = valor)
+            Map<String, Object> nuevosValores = new HashMap<>();
+            String[] asignaciones = setStr.split(",");
+            for (String asig : asignaciones) {
+                String[] partes = asig.trim().split("=");
+                if (partes.length == 2) {
+                    String campo = partes[0].trim();
+                    String valorStr = partes[1].trim();
+                    
+                    // Convertir valor
+                    Object valor;
+                    if (valorStr.startsWith("\"")) {
+                        valor = valorStr.replace("\"", "");
+                    } else if (valorStr.equals("true") || valorStr.equals("false")) {
+                        valor = Boolean.parseBoolean(valorStr);
+                    } else if (valorStr.matches("\\d+")) {
+                        valor = Integer.parseInt(valorStr);
+                    } else if (valorStr.matches("\\d+\\.\\d+")) {
+                        valor = Double.parseDouble(valorStr);
+                    } else {
+                        valor = valorStr;
+                    }
+                    nuevosValores.put(campo, valor);
+                }
+            }
+        
+            // Procesar filtro si existe
+            int actualizados = 0;
+            if (filterStr != null && !filterStr.isEmpty()) {
+                String[] filterParts = filterStr.trim().split("\\s+");
+                if (filterParts.length == 3) {
+                    String campo = filterParts[0];
+                    String operador = filterParts[1];
+                    String valorStr = filterParts[2];
+                    
+                    Object valor;
+                    if (valorStr.startsWith("\"")) {
+                        valor = valorStr.replace("\"", "");
+                    } else if (valorStr.matches("\\d+")) {
+                        valor = Integer.parseInt(valorStr);
+                    } else {
+                        valor = valorStr;
+                    }
+                    
+                    actualizados = gestor.actualizar(nombreTabla, campo, operador, valor, nuevosValores);
+                }
+            } else {
+                // Sin filtro, actualizar todos
+                Map<String, String> schema = gestor.getSchema(nombreTabla);
+                if (schema != null) {
+                    List<Map<String, Object>> todos = gestor.consultar(nombreTabla, null, null, null);
+                    for (Map<String, Object> reg : todos) {
+                        for (Map.Entry<String, Object> entry : nuevosValores.entrySet()) {
+                            reg.put(entry.getKey(), entry.getValue());
+                        }
+                    }
+                    actualizados = todos.size();
+                    gestor.guardar();
+                }
+            }
+            
+            txtConsola.append("✏️ UPDATE en " + nombreTabla + ": " + actualizados + " registros actualizados\n");
+        }
+    }
+
+    // PROCESAR INSTRUCCIONES EXPORT
+    private void procesarExport(String codigo) {
+        java.util.regex.Pattern pExport = java.util.regex.Pattern.compile("export\\s+\"([^\"]+)\"\\s*;");
+        java.util.regex.Matcher mExport = pExport.matcher(codigo);
+    
+        while (mExport.find()) {
+            String nombreArchivo = mExport.group(1);
+            
+            if (ultimosResultados != null && !ultimosResultados.isEmpty()) {
+                // gestor para exportar
+                eli.compiler.GestorJSON gestorTemp = new eli.compiler.GestorJSON(nombreArchivo);
+                gestorTemp.exportarResultados(nombreArchivo, ultimosResultados, ultimosCampos, ultimaTabla);
+                txtConsola.append("Resultados exportados a: " + nombreArchivo + "\n");
+                txtOutput.append("Resultados exportados a " + nombreArchivo + "\n");
+            } else {
+                txtConsola.append("No hay resultados de READ para exportar\n");
+            }
         }
     }
     

@@ -210,4 +210,93 @@ public class GestorJSON {
         }
         return null;
     }
+    
+    // ACTUALIZAR REGISTROS QUE CUMPLAN CON EL FILTRO
+    public int actualizar(String nombreTabla, String campoFiltro, String operador, Object valorFiltro, Map<String, Object> nuevosValores) {
+        int contador = 0;
+        
+        Map<String, Map<String, Object>> tablas = (Map<String, Map<String, Object>>) baseDatos.get("tablas");
+        if (tablas != null && tablas.containsKey(nombreTabla)) {
+            List<Map<String, Object>> records = (List<Map<String, Object>>) tablas.get(nombreTabla).get("records");
+            
+            for (Map<String, Object> record : records) {
+                if (record.containsKey(campoFiltro)) {
+                    Object valorCampo = record.get(campoFiltro);
+                    boolean cumple = false;
+                    
+                    // Evaluar condicion
+                    switch (operador) {
+                        case "==": cumple = valorCampo.equals(valorFiltro); break;
+                        case "!=": cumple = !valorCampo.equals(valorFiltro); break;
+                        case ">": 
+                            if (valorCampo instanceof Number && valorFiltro instanceof Number) {
+                                cumple = ((Number) valorCampo).doubleValue() > ((Number) valorFiltro).doubleValue();
+                            } break;
+                        case "<":
+                            if (valorCampo instanceof Number && valorFiltro instanceof Number) {
+                                cumple = ((Number) valorCampo).doubleValue() < ((Number) valorFiltro).doubleValue();
+                            } break;
+                    }
+                    
+                    if (cumple) {
+                        // Actualizar campos
+                        for (Map.Entry<String, Object> entry : nuevosValores.entrySet()) {
+                            record.put(entry.getKey(), entry.getValue());
+                        }
+                        contador++;
+                    }
+                }
+            }
+            guardar(); // Guardar cambios
+        }
+        return contador;
+    }
+
+    // EXPORTAR RESULTADOS EN UN JSON
+    public void exportarResultados(String nombreArchivo, List<Map<String, Object>> resultados, String[] campos, String nombreTabla) {
+        try {
+            StringBuilder sb = new StringBuilder();
+            sb.append("{\n");
+            sb.append("  \"tabla\": \"").append(nombreTabla).append("\",\n");
+            sb.append("  \"campos\": [");
+            for (int i = 0; i < campos.length; i++) {
+                sb.append("\"").append(campos[i]).append("\"");
+                if (i < campos.length - 1) sb.append(", ");
+            }
+            sb.append("],\n");
+            sb.append("  \"registros\": [\n");
+            
+            for (int i = 0; i < resultados.size(); i++) {
+                Map<String, Object> reg = resultados.get(i);
+                sb.append("    {");
+                int j = 0;
+                for (String campo : campos) {
+                    sb.append("\"").append(campo).append("\": ");
+                    Object valor = reg.get(campo);
+                    if (valor instanceof String) {
+                        sb.append("\"").append(valor).append("\"");
+                    } else {
+                        sb.append(valor);
+                    }
+                    if (j < campos.length - 1) sb.append(", ");
+                    j++;
+                }
+                sb.append("}");
+                if (i < resultados.size() - 1) sb.append(",");
+                sb.append("\n");
+            }
+            
+            sb.append("  ]\n");
+            sb.append("}\n");
+            
+            FileWriter writer = new FileWriter(nombreArchivo);
+            writer.write(sb.toString());
+            writer.close();
+            
+            System.out.println("Resultados exportados a: " + nombreArchivo);
+            
+        } catch (Exception e) {
+            System.err.println("Error al exportar: " + e.getMessage());
+        }
+    }
 }

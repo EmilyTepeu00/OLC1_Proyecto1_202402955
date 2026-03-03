@@ -1,4 +1,4 @@
-// parser.cup - Analizador Sintáctico para ELI NOSQL (VERSIÓN SIMPLE)
+// ANALIZADOR SINTACTICO
 package eli.compiler;
 
 import java_cup.runtime.*;
