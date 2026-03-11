@@ -7,7 +7,7 @@ import java.util.*;
 // TERMINALES (TOKENS)
 terminal           DATABASE, TABLE, READ, ADD, UPDATE, EXPORT, USE, CLEAR;      // Palabras reservadas de ELI
 terminal           FIELDS, FILTER, SET, STORE, AT;                              // Palabras para clausulas internas
-terminal           INT, FLOAT, STRING, BOOL;                                    // Tipos de datos (tablas)
+terminal           INT, FLOAT, STRING, BOOL, ARRAY, OBJECT, NULL;               // Tipos de datos (tablas)
 terminal           EQ, NEQ, GT, LT, GTE, LTE;                                   // Operadores relacionales (filtros)
 terminal           AND, OR, NOT;                                                // Operadores logicos
 terminal           LBRACE, RBRACE, LPAREN, RPAREN, LBRACKET, RBRACKET;          // Signos de agrupacion y puntuacion
@@ -44,7 +44,7 @@ non terminal assignment;
 non terminal read_body;
 non terminal update_body;
 non terminal array_value_list;
-
+non terminal array;
 // REGLAS GRAMATICALES
 program ::= statement_list;
 
@@ -87,6 +87,8 @@ type ::=
     | FLOAT
     | STRING
     | BOOL
+    | ARRAY
+    | OBJECT
     ;
 
 // --- READ ---
@@ -122,6 +124,8 @@ value ::=
     | DECIMAL
     | STRING_LITERAL
     | BOOLEAN
+    | array
+    | NULL
     ;
 
 // --- UPDATE ---

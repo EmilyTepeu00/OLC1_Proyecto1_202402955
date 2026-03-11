@@ -8,50 +8,53 @@ package eli.compiler;
 /** CUP generated class containing symbol constants. */
 public class sym {
   /* terminals */
-  public static final int STRING_LITERAL = 43;
-  public static final int LTE = 24;
-  public static final int LBRACKET = 32;
+  public static final int STRING_LITERAL = 46;
+  public static final int LTE = 27;
+  public static final int LBRACKET = 35;
   public static final int STORE = 13;
-  public static final int ENTERO = 41;
-  public static final int LPAREN = 30;
+  public static final int ENTERO = 44;
+  public static final int LPAREN = 33;
   public static final int INT = 15;
   public static final int FILTER = 11;
+  public static final int ARRAY = 19;
   public static final int UPDATE = 6;
-  public static final int STAR = 39;
-  public static final int RPAREN = 31;
-  public static final int IDENTIFICADOR = 40;
-  public static final int NOT = 27;
-  public static final int SEMICOLON = 34;
-  public static final int AND = 25;
-  public static final int LT = 22;
+  public static final int STAR = 42;
+  public static final int RPAREN = 34;
+  public static final int IDENTIFICADOR = 43;
+  public static final int SEMICOLON = 37;
+  public static final int NOT = 30;
+  public static final int AND = 28;
+  public static final int LT = 25;
   public static final int USE = 8;
-  public static final int OR = 26;
-  public static final int COMMA = 36;
+  public static final int OBJECT = 20;
+  public static final int OR = 29;
+  public static final int COMMA = 39;
   public static final int BOOL = 18;
-  public static final int ASSIGN = 38;
-  public static final int DOT = 37;
-  public static final int BOOLEAN = 44;
-  public static final int DECIMAL = 42;
+  public static final int ASSIGN = 41;
+  public static final int DOT = 40;
+  public static final int BOOLEAN = 47;
+  public static final int DECIMAL = 45;
   public static final int EOF = 0;
-  public static final int RBRACKET = 33;
+  public static final int RBRACKET = 36;
   public static final int TABLE = 3;
   public static final int error = 1;
   public static final int EXPORT = 7;
   public static final int ADD = 5;
+  public static final int NULL = 21;
   public static final int FIELDS = 10;
-  public static final int NEQ = 20;
-  public static final int EQ = 19;
-  public static final int GTE = 23;
-  public static final int COLON = 35;
-  public static final int LBRACE = 28;
+  public static final int NEQ = 23;
+  public static final int EQ = 22;
+  public static final int GTE = 26;
+  public static final int COLON = 38;
+  public static final int LBRACE = 31;
   public static final int READ = 4;
   public static final int FLOAT = 16;
   public static final int CLEAR = 9;
   public static final int DATABASE = 2;
-  public static final int RBRACE = 29;
+  public static final int RBRACE = 32;
   public static final int STRING = 17;
   public static final int AT = 14;
-  public static final int GT = 21;
+  public static final int GT = 24;
   public static final int SET = 12;
   public static final String[] terminalNames = new String[] {
   "EOF",
@@ -73,6 +76,9 @@ public class sym {
   "FLOAT",
   "STRING",
   "BOOL",
+  "ARRAY",
+  "OBJECT",
+  "NULL",
   "EQ",
   "NEQ",
   "GT",

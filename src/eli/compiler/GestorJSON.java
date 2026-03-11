@@ -89,14 +89,70 @@ public class GestorJSON {
                         for (Map.Entry<String, Object> field : record.entrySet()) {
                             valueCount++;
                             sb.append("          \"").append(field.getKey()).append("\": ");
-                            if (field.getValue() instanceof String) {
-                                sb.append("\"").append(field.getValue()).append("\"");
-                            } else {
-                                sb.append(field.getValue());
+                            
+                            Object valor = field.getValue();
+                            
+                            if (valor == null) {
+                                sb.append("null");
                             }
+                            else if (valor instanceof String) {
+                                sb.append("\"").append(valor).append("\"");
+                            }
+                            else if (valor instanceof Map) {
+                                // Es un objeto anidado (meta, specs, envio, perfil)
+                                sb.append("{");
+                                Map<String, Object> objeto = (Map<String, Object>) valor;
+                                int subCount = 0;
+                                for (Map.Entry<String, Object> subField : objeto.entrySet()) {
+                                    subCount++;
+                                    sb.append("\"").append(subField.getKey()).append("\": ");
+                                    if (subField.getValue() instanceof String) {
+                                        sb.append("\"").append(subField.getValue()).append("\"");
+                                    } else {
+                                        sb.append(subField.getValue());
+                                    }
+                                    if (subCount < objeto.size()) sb.append(", ");
+                                }
+                                sb.append("}");
+                            }
+                            else if (valor instanceof List) {
+                                // Es un array (preferencias, tags, items, cursos)
+                                sb.append("[");
+                                List<Object> lista = (List<Object>) valor;
+                                for (int i = 0; i < lista.size(); i++) {
+                                    if (lista.get(i) instanceof String) {
+                                        sb.append("\"").append(lista.get(i)).append("\"");
+                                    } else if (lista.get(i) instanceof Map) {
+                                        // Array de objetos (como items en ordenes)
+                                        Map<String, Object> objArray = (Map<String, Object>) lista.get(i);
+                                        sb.append("{");
+                                        int subCount = 0;
+                                        for (Map.Entry<String, Object> subField : objArray.entrySet()) {
+                                            subCount++;
+                                            sb.append("\"").append(subField.getKey()).append("\": ");
+                                            if (subField.getValue() instanceof String) {
+                                                sb.append("\"").append(subField.getValue()).append("\"");
+                                            } else {
+                                                sb.append(subField.getValue());
+                                            }
+                                            if (subCount < objArray.size()) sb.append(", ");
+                                        }
+                                        sb.append("}");
+                                    } else {
+                                        sb.append(lista.get(i));
+                                    }
+                                    if (i < lista.size() - 1) sb.append(", ");
+                                }
+                                sb.append("]");
+                            }
+                            else {
+                                sb.append(valor);
+                            }
+    
                             if (valueCount < record.size()) sb.append(",");
                             sb.append("\n");
-                        }
+                        }                       
+                        
                         sb.append("        }");
                         if (recordCount < records.size()) sb.append(",");
                         sb.append("\n");

@@ -56,6 +56,9 @@ Espacio = [ \t\r\n\f]
 "float"         { return symbol(sym.FLOAT); }
 "string"        { return symbol(sym.STRING); }
 "bool"          { return symbol(sym.BOOL); }
+"array"         { return symbol(sym.ARRAY); }
+"object"        { return symbol(sym.OBJECT); }
+"null"          { return symbol(sym.NULL); }
 
 // OPERADORES RELACIONALES
 "=="            { return symbol(sym.EQ); }

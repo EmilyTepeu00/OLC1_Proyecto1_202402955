@@ -224,15 +224,15 @@ public class VentanaPrincipal extends javax.swing.JFrame {
     private void botonEjecutarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_botonEjecutarActionPerformed
         String codigo = txtEditor.getText();
         txtConsola.setText(""); // Limpiar consola
-        txtOutput.setText(""); // Limpiar output
-        listaErrores.clear(); // Limpiar errores anteriores
+        txtOutput.setText("");  // Limpiar output
+        listaErrores.clear();   // Limpiar errores anteriores
         
         // Declarar gestor
         eli.compiler.GestorJSON gestor = null;
         
         // VERIFICAR SI HAY DATABASE
         if (codigo.contains("database") && codigo.contains("store at")) {
-            // Ectraer nombre y ruta de la base de datos
+            // Extraer nombre y ruta de la base de datos
             java.util.regex.Pattern p = java.util.regex.Pattern.compile("database\\s+(\\w+)\\s*\\{\\s*store\\s+at\\s+\"([^\"]+)\"\\s*;\\s*\\}");
             java.util.regex.Matcher m = p.matcher(codigo);
             
@@ -390,25 +390,62 @@ public class VentanaPrincipal extends javax.swing.JFrame {
             JOptionPane.showMessageDialog(this, "No hay errores para mostrar");
             return;
         }
-    
+        
         // CREAR VENTANA
-        JFrame frameErrores = new JFrame("Reporte de Errores");
-        frameErrores.setSize(600, 400);
-    
+        JFrame frameErrores = new JFrame("Reporte de Errores - ELI NOSQL");
+        frameErrores.setSize(800, 500);
+        
         String[][] datos = listaErrores.toArray(new String[0][0]);
         String[] columnas = {"#", "Tipo", "Descripcion", "Linea", "Columna"};
-    
+        
         JTable tabla = new JTable(datos, columnas);
+        
+        // FORMATO
+        tabla.setRowHeight(25);
+        tabla.setGridColor(new java.awt.Color(200, 200, 200)); // Color de cuadricula
+        tabla.setShowGrid(true);
+        
+        // COLORES Y TEXTO CENTRADO
+        tabla.setDefaultRenderer(Object.class, new javax.swing.table.DefaultTableCellRenderer() {
+            @Override
+            public java.awt.Component getTableCellRendererComponent(JTable table, Object value,
+                    boolean isSelected, boolean hasFocus, int row, int column) {
+                java.awt.Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                
+                // Colores alternados para las filas
+                if (!isSelected) {
+                    if (row % 2 == 0) {
+                        c.setBackground(new java.awt.Color(240, 248, 255));
+                    } else {
+                        c.setBackground(java.awt.Color.WHITE);
+                    }
+                }
+                
+                // Centrar texto
+                ((javax.swing.table.DefaultTableCellRenderer) c).setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+                setFont(new java.awt.Font("Monospaced", java.awt.Font.PLAIN, 14));
+                
+                return c;
+            }
+        });
+        
+        // AJUSTAR ANCHO DE COLUMNAS
+        tabla.getColumnModel().getColumn(0).setPreferredWidth(40);   // #
+        tabla.getColumnModel().getColumn(1).setPreferredWidth(100);  // Tipo
+        tabla.getColumnModel().getColumn(2).setPreferredWidth(350);  // Descripcion
+        tabla.getColumnModel().getColumn(3).setPreferredWidth(60);   // Linea
+        tabla.getColumnModel().getColumn(4).setPreferredWidth(60);   // Columna
+        
         JScrollPane scrollPane = new JScrollPane(tabla);
         frameErrores.add(scrollPane);
+        frameErrores.setLocationRelativeTo(this);
         frameErrores.setVisible(true);
-        
     }//GEN-LAST:event_OpcionErroresActionPerformed
 
     private void OpcionTokensActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_OpcionTokensActionPerformed
         // CREAR VENTANA
-        JFrame frameTokens = new JFrame("Tabla de Tokens");
-        frameTokens.setSize(600, 400);
+        JFrame frameTokens = new JFrame("Tabla de Tokens - ELI NOSQL");
+        frameTokens.setSize(800, 600);
         
         // Si hay codigo en el editor, analizarlo y mostrar tokens
         String codigo = txtEditor.getText();
@@ -421,38 +458,200 @@ public class VentanaPrincipal extends javax.swing.JFrame {
             java.io.Reader reader = new java.io.StringReader(codigo);
             eli.compiler.Lexer lexer = new eli.compiler.Lexer(reader);
             
-            // PRIMERA PASADA: Contar tokens para crear la matriz
             java.util.ArrayList<String[]> listaTokens = new java.util.ArrayList<>();
             java_cup.runtime.Symbol token;
             int contador = 1;
             
-            listaTokens.add(new String[]{"#", "Token", "Lexema", "Linea", "Columna"});
+            // ENCABEZADOS
+            listaTokens.add(new String[]{"#", "Lexema", "Tipo", "Linea", "Columna"});
             
             while ((token = lexer.next_token()).sym != eli.compiler.sym.EOF) {
                 String nombreToken = eli.compiler.sym.terminalNames[token.sym];
-                String lexema = token.value != null ? token.value.toString() : "";
+                
+                // DETERMINAR EL LEXEMA
+                String lexema = "";
+                
+                // Token con valor
+                if (token.value != null) {
+                    lexema = token.value.toString();
+                } 
+                // Token sin valor
+                else {
+                    switch (nombreToken) {
+                        // Palabras reservadas
+                        case "DATABASE": lexema = "database"; break;
+                        case "TABLE": lexema = "table"; break;
+                        case "READ": lexema = "read"; break;
+                        case "ADD": lexema = "add"; break;
+                        case "UPDATE": lexema = "update"; break;
+                        case "EXPORT": lexema = "export"; break;
+                        case "USE": lexema = "use"; break;
+                        case "CLEAR": lexema = "clear"; break;
+                        case "FIELDS": lexema = "fields"; break;
+                        case "FILTER": lexema = "filter"; break;
+                        case "SET": lexema = "set"; break;
+                        case "STORE": lexema = "store"; break;
+                        case "AT": lexema = "at"; break;
+                    
+                        // Tipos de datos
+                        case "INT": lexema = "int"; break;
+                        case "FLOAT": lexema = "float"; break;
+                        case "STRING": lexema = "string"; break;
+                        case "BOOL": lexema = "bool"; break;
+                        case "ARRAY": lexema = "array"; break;
+                        case "OBJECT": lexema = "object"; break;
+                        case "NULL": lexema = "null"; break;
+                        
+                        // Operadores relacionales
+                        case "EQ": lexema = "=="; break;
+                        case "NEQ": lexema = "!="; break;
+                        case "GT": lexema = ">"; break;
+                        case "LT": lexema = "<"; break;
+                        case "GTE": lexema = ">="; break;
+                        case "LTE": lexema = "<="; break;
+                        
+                        // Operadores logicos
+                        case "AND": lexema = "&&"; break;
+                        case "OR": lexema = "||"; break;
+                        case "NOT": lexema = "!"; break;
+                        
+                        // Signos
+                        case "LBRACE": lexema = "{"; break;
+                        case "RBRACE": lexema = "}"; break;
+                        case "LPAREN": lexema = "("; break;
+                        case "RPAREN": lexema = ")"; break;
+                        case "LBRACKET": lexema = "["; break;
+                        case "RBRACKET": lexema = "]"; break;
+                        case "SEMICOLON": lexema = ";"; break;
+                        case "COLON": lexema = ":"; break;
+                        case "COMMA": lexema = ","; break;
+                        case "DOT": lexema = "."; break;
+                        case "ASSIGN": lexema = "="; break;
+                        case "STAR": lexema = "*"; break;
+                        
+                        // Identificadores
+                        case "IDENTIFICADOR": lexema = "ID"; break;
+                        
+                        default: lexema = nombreToken.toLowerCase(); break;
+                    }
+                }
+                
+                // DETERMINAR EL TIPO
+                String tipoToken = "";
+                switch (nombreToken) {
+                    case "DATABASE": tipoToken = "DATABASE"; break;
+                    case "TABLE": tipoToken = "TABLE"; break;
+                    case "READ": tipoToken = "READ"; break;
+                    case "ADD": tipoToken = "ADD"; break;
+                    case "UPDATE": tipoToken = "UPDATE"; break;
+                    case "EXPORT": tipoToken = "EXPORT"; break;
+                    case "USE": tipoToken = "USE"; break;
+                    case "CLEAR": tipoToken = "CLEAR"; break;
+                    case "FIELDS": tipoToken = "FIELDS"; break;
+                    case "FILTER": tipoToken = "FILTER"; break;
+                    case "SET": tipoToken = "SET"; break;
+                    case "STORE": tipoToken = "STORE"; break;
+                    case "AT": tipoToken = "AT"; break;
+                    case "INT": tipoToken = "INT"; break;
+                    case "FLOAT": tipoToken = "FLOAT"; break;
+                    case "STRING": tipoToken = "STRING"; break;
+                    case "BOOL": tipoToken = "BOOL"; break;
+                    case "ARRAY": tipoToken = "ARRAY"; break;
+                    case "OBJECT": tipoToken = "OBJECT"; break;
+                    case "NULL": tipoToken = "NULL"; break;
+                    case "IDENTIFICADOR": tipoToken = "ID"; break;
+                    case "ENTERO": tipoToken = "INT"; break;
+                    case "DECIMAL": tipoToken = "FLOAT"; break;
+                    case "STRING_LITERAL": tipoToken = "STRING"; break;
+                    case "BOOLEAN": tipoToken = "BOOL"; break;
+                    case "EQ": tipoToken = "IGUAL"; break;
+                    case "NEQ": tipoToken = "DIFERENTE"; break;
+                    case "GT": tipoToken = "MAYOR"; break;
+                    case "LT": tipoToken = "MENOR"; break;
+                    case "GTE": tipoToken = "MAYORIGUAL"; break;
+                    case "LTE": tipoToken = "MENORIGUAL"; break;
+                    case "AND": tipoToken = "AND"; break;
+                    case "OR": tipoToken = "OR"; break;
+                    case "NOT": tipoToken = "NOT"; break;
+                    case "LBRACE": tipoToken = "LLAVEIZQ"; break;
+                    case "RBRACE": tipoToken = "LLAVEDER"; break;
+                    case "LPAREN": tipoToken = "PARENIZQ"; break;
+                    case "RPAREN": tipoToken = "PARENDER"; break;
+                    case "LBRACKET": tipoToken = "CORCHETEIZQ"; break;
+                    case "RBRACKET": tipoToken = "CORCHETEDER"; break;
+                    case "SEMICOLON": tipoToken = "PTCOMA"; break;
+                    case "COLON": tipoToken = "DOSPUNTOS"; break;
+                    case "COMMA": tipoToken = "COMA"; break;
+                    case "DOT": tipoToken = "PUNTO"; break;
+                    case "ASSIGN": tipoToken = "ASIGNACION"; break;
+                    case "STAR": tipoToken = "ASTERISCO"; break;
+                    default: tipoToken = nombreToken; break;
+                }
+                
                 String linea = String.valueOf(token.left);
                 String columna = String.valueOf(token.right);
                 
-               listaTokens.add(new String[]{
+                listaTokens.add(new String[]{
                     String.valueOf(contador++),
-                    nombreToken,
                     lexema,
+                    tipoToken,
                     linea,
                     columna
                 });
             }
-        
-            // CONVERTIR A MATRIZ PARA LA TABLA
-            String[][] datos = listaTokens.toArray(new String[0][0]);
-            String[] columnas = datos[0]; // La primera fila son los encabezados
             
-            // CREAR TABLA CON LOS DATOS (sin la primera fila de encabezados)
+            // CONVERTIR A MATRIZ
+            String[][] datos = listaTokens.toArray(new String[0][0]);
+            String[] columnas = datos[0];
             String[][] datosReales = java.util.Arrays.copyOfRange(datos, 1, datos.length);
             
             JTable tabla = new JTable(datosReales, columnas);
+            
+            // CENTRAR TEXTO
+            tabla.setDefaultRenderer(Object.class, new javax.swing.table.DefaultTableCellRenderer() {{
+                setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+                setFont(new java.awt.Font("Monospaced", java.awt.Font.PLAIN, 14)); // Tamaño de letra
+            }});
+            
+            // COLORES DE LA TABLA
+            tabla.setRowHeight(25); 
+            tabla.setGridColor(new java.awt.Color(200, 200, 200)); // Color de cuadricula
+            tabla.setShowGrid(true);
+            
+            // AJUSTAR ANCHO DE COLUMNAS
+            tabla.getColumnModel().getColumn(0).setPreferredWidth(60);  // #
+            tabla.getColumnModel().getColumn(1).setPreferredWidth(60);  // Lexema
+            tabla.getColumnModel().getColumn(2).setPreferredWidth(60);  // Tipo
+            tabla.getColumnModel().getColumn(3).setPreferredWidth(60);  // Linea
+            tabla.getColumnModel().getColumn(4).setPreferredWidth(60);  // Columna
+            
+            // COLORES EN FILAS
+            tabla.setDefaultRenderer(Object.class, new javax.swing.table.DefaultTableCellRenderer() {
+                @Override
+                public java.awt.Component getTableCellRendererComponent(JTable table, Object value,
+                        boolean isSelected, boolean hasFocus, int row, int column) {
+                    java.awt.Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                    
+                    // Colores alternados para las filas
+                    if (!isSelected) {
+                        if (row % 2 == 0) {
+                            c.setBackground(new java.awt.Color(240, 248, 255)); // Azul claro
+                        } else {
+                            c.setBackground(java.awt.Color.WHITE);
+                        }
+                    }
+                    
+                    // Centrar texto
+                    ((javax.swing.table.DefaultTableCellRenderer) c).setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+                    setFont(new java.awt.Font("Monospaced", java.awt.Font.PLAIN, 14));
+                    
+                    return c;
+                }
+            });
+            
             JScrollPane scrollPane = new JScrollPane(tabla);
             frameTokens.add(scrollPane);
+            frameTokens.setLocationRelativeTo(this);
             frameTokens.setVisible(true);
             
         } catch (Exception e) {
