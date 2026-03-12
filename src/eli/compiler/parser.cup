@@ -1,27 +1,34 @@
-// ANALIZADOR SINTACTICO
+// --- ANALIZADOR SINTACTICO ---
+// Para definir la gramatica del lenguaje ELI
+// Y definir como se combinan los tokens para formar instrucciones validas
+
 package eli.compiler;
 
 import java_cup.runtime.*;
 import java.util.*;
 
-// TERMINALES (TOKENS)
+// ***TERMINALES (TOKENS)***
+// Son tokens que vienen del lexer, contienen nombre y algunos tienen valor asociado
 terminal           DATABASE, TABLE, READ, ADD, UPDATE, EXPORT, USE, CLEAR;      // Palabras reservadas de ELI
 terminal           FIELDS, FILTER, SET, STORE, AT;                              // Palabras para clausulas internas
 terminal           INT, FLOAT, STRING, BOOL, ARRAY, OBJECT, NULL;               // Tipos de datos (tablas)
 terminal           EQ, NEQ, GT, LT, GTE, LTE;                                   // Operadores relacionales (filtros)
 terminal           AND, OR, NOT;                                                // Operadores logicos
 terminal           LBRACE, RBRACE, LPAREN, RPAREN, LBRACKET, RBRACKET;          // Signos de agrupacion y puntuacion
-terminal           SEMICOLON, COLON, COMMA, DOT, ASSIGN, STAR;
+terminal           SEMICOLON, COLON, COMMA, DOT, ASSIGN, STAR;                  // Identificadores (nombre de tablas, campos, variables)
 terminal           IDENTIFICADOR;                                               // Identificadores y valores
 terminal Integer   ENTERO;
 terminal Double    DECIMAL;
 terminal String    STRING_LITERAL;
 terminal Boolean   BOOLEAN;
 
-// NO TERMINALES
-non terminal program;
-non terminal statement;
-non terminal statement_list;
+// ***NO TERMINALES***
+// Conceptos del lenguaje que se construyen a partir de otros no terminales o terminales
+non terminal program;               // Programa completo
+non terminal statement;             // Instruccion
+non terminal statement_list;        // Lista de instrucciones
+
+// Instrucciones con sus nombres
 non terminal database_statement;
 non terminal use_statement;
 non terminal table_statement;
@@ -30,29 +37,42 @@ non terminal add_statement;
 non terminal update_statement;
 non terminal clear_statement;
 non terminal export_statement;
-non terminal store_statement;
-non terminal field_list;
-non terminal field;
-non terminal type;
-non terminal field_value_list;
-non terminal field_value;
-non terminal value;
-non terminal field_selector;
-non terminal filter_opt;
-non terminal assignment_list;
-non terminal assignment;
-non terminal read_body;
-non terminal update_body;
-non terminal array_value_list;
-non terminal array;
-// REGLAS GRAMATICALES
+
+non terminal store_statement;       // Parte de DATABASE: sore ar "ruta"
+
+non terminal field_list;            // Lista de campos en CREATE TABLE
+non terminal field;                 // Campo: nombre : tipo
+non terminal type;                  // Tipos de datos
+
+non terminal field_value_list;      // Lista campo-valor en INSERT
+non terminal field_value;           // Un campo=valor
+non terminal value;                 // Un valor (numero, stringm array, null)
+
+non terminal field_selector;        // Selector de campos en READ
+non terminal filter_opt;            // Clausula FILTER
+
+non terminal assignment_list;       // Lista de asignaciones en UPDATE
+non terminal assignment;            // Una asignacion campo = valor
+
+non terminal read_body;             // Cuerpo de READ: { fields... filer... }
+non terminal update_body;           // Cuerpo de UPDATE: { set... filter... }
+
+non terminal array_value_list;      // Lista de valores dentro de un array
+non terminal array;                 // Un array: [ valor, valor, ... ]
+
+// ***REGLAS GRAMATICALES***
+// Cada regla define como construir un no terminal a partir de terminales y no terminales
+
+// Un programa es una lista de instrucciones
 program ::= statement_list;
 
+// Una lista de instrucciones puede ser una instruccion sola o varias consecutivas
 statement_list ::= 
-      statement_list statement
-    | statement
+      statement_list statement      // Recursion: permite varias instrucciones
+    | statement                     // Caso base: una sola instruccion
     ;
 
+// Instrucciones:
 statement ::= 
       database_statement
     | use_statement
@@ -64,20 +84,23 @@ statement ::=
     | export_statement
     ;
 
-// --- DATABASE ---
+// ***DATABASE***
+// Define una base de datos con su archivo de persistencia -> ej: database universidad { store at "datos.json"; }
 database_statement ::= DATABASE IDENTIFICADOR LBRACE store_statement RBRACE;
 
 store_statement ::= STORE AT STRING_LITERAL SEMICOLON;
 
-// --- USE ---
+// ***USE***
+// Selecciona la base de datos activa -> ej: use universidad;
 use_statement ::= USE IDENTIFICADOR SEMICOLON;
 
-// --- TABLE ---
+// ***TABLE***
+// Para la estructura de una tabla -> ej: table estudiantes { id:int; nombre:string; edad:int; }
 table_statement ::= TABLE IDENTIFICADOR LBRACE field_list RBRACE;
 
 field_list ::= 
-      field_list field
-    | field
+      field_list field      // Multiples campos
+    | field                 // Un solo campo
     ;
 
 field ::= IDENTIFICADOR COLON type SEMICOLON;
@@ -91,30 +114,32 @@ type ::=
     | OBJECT
     ;
 
-// --- READ ---
+// ***READ***
+// Para consultar los registros -> ej: read estudiantes { fields: nombre, edad; filter: edad > 18; }
 read_statement ::= READ IDENTIFICADOR LBRACE read_body RBRACE SEMICOLON;
 
 read_body ::= 
-      FIELDS COLON field_selector SEMICOLON filter_opt
-    | FIELDS COLON STAR SEMICOLON filter_opt
+      FIELDS COLON field_selector SEMICOLON filter_opt      // Campos especificos
+    | FIELDS COLON STAR SEMICOLON filter_opt                // Todos los campos (*}
     ;
 
 field_selector ::= 
-      field_selector COMMA IDENTIFICADOR
-    | IDENTIFICADOR
+      field_selector COMMA IDENTIFICADOR        // Lista de campos separados por coma
+    | IDENTIFICADOR                             // Un solo campo
     ;
 
 filter_opt ::= 
-      FILTER COLON IDENTIFICADOR EQ value SEMICOLON
-    | /* empty */
+      FILTER COLON IDENTIFICADOR EQ value SEMICOLON     // Con filtro
+    | /* empty */                                       // Sin filtro
     ;
 
-// --- ADD ---
+// ***ADD***
+// Inserta un nuevo registro -> ej: { id:1, nombre:"Luis", edad:22 };
 add_statement ::= ADD IDENTIFICADOR LBRACE field_value_list RBRACE SEMICOLON;
 
 field_value_list ::= 
-      field_value_list COMMA field_value
-    | field_value
+      field_value_list COMMA field_value        // Multiples campo=valor
+    | field_value                               // Un solo campo=valor
     ;
 
 field_value ::= IDENTIFICADOR COLON value;
@@ -128,20 +153,23 @@ value ::=
     | NULL
     ;
 
-// --- UPDATE ---
+// ***UPDATE***
+// Modifica registros que cumplan con el filtro -> ej: update estudiantes { set: edad=23; filter: id==1; };
 update_statement ::= UPDATE IDENTIFICADOR LBRACE update_body RBRACE SEMICOLON;
 
 update_body ::= SET COLON assignment_list SEMICOLON filter_opt;
 
 assignment_list ::= 
-      assignment_list COMMA assignment
-    | assignment
+      assignment_list COMMA assignment      // Multiples asignaciones
+    | assignment                            // Una sola asignacion
     ;
 
 assignment ::= IDENTIFICADOR ASSIGN value;
 
-// --- CLEAR ---
+// ***CLEAR***
+// Elimina todos los registros de una tabla -> ej: clear estudiantes;
 clear_statement ::= CLEAR IDENTIFICADOR SEMICOLON;
 
-// --- EXPORT ---
+// ***EXPORT***
+// Guarda resultados de la ultima consulta en JSON -> ej: export "resultados.json";
 export_statement ::= EXPORT STRING_LITERAL SEMICOLON;

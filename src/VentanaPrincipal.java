@@ -10,20 +10,35 @@ import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 import java.io.*;
 import java.util.*;
+import javax.swing.BoxLayout;
+import javax.swing.Box;
+import javax.swing.JPanel;
+import javax.swing.JLabel;
+import java.awt.Dimension;
+import java.awt.Color;
 
 public class VentanaPrincipal extends javax.swing.JFrame {
     
-    // Lista para guardar errores durante el analisis
+    // VARIABLES DE INSTANCIA
+    
+    // Lista para almacenar errores lexicos encontrados durante el analisis
     private java.util.ArrayList<String[]> listaErrores = new java.util.ArrayList<>();
 
-    // Variables para EXPORT
+    // VARIABLES PARA EXPORT
+    // Reultados del ultimo READ
     private List<Map<String, Object>> ultimosResultados = null;
+    // Campos mostrados en el ultimo READ
     private String[] ultimosCampos = null;
+    // Tabla consultada en el ultimo READ
     private String ultimaTabla = null;
     
+    // CONSTRUCTOR
     public VentanaPrincipal() {
         initComponents();
+        // Nombre de la ventana
+        setTitle("ELI NOSQL");
     }
+    
 
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
@@ -153,6 +168,11 @@ public class VentanaPrincipal extends javax.swing.JFrame {
         MenuAyuda.setText("Ayuda");
 
         OpcionAcercaDe.setText("Acerca de");
+        OpcionAcercaDe.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                OpcionAcercaDeActionPerformed(evt);
+            }
+        });
         MenuAyuda.add(OpcionAcercaDe);
 
         jMenuBar1.add(MenuAyuda);
@@ -217,17 +237,19 @@ public class VentanaPrincipal extends javax.swing.JFrame {
         pack();
     }// </editor-fold>//GEN-END:initComponents
     
+    // PARA CERRAR LA ACPLICACION
     private void OpcionSalirActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_OpcionSalirActionPerformed
-        // TODO add your handling code here:
+        System.exit(0); // Terminar el programa
     }//GEN-LAST:event_OpcionSalirActionPerformed
-
+    
+    // BOTON EJECUTAR: ejecuta el analisis lexico, sintactico y procesa las isntrucciones
     private void botonEjecutarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_botonEjecutarActionPerformed
         String codigo = txtEditor.getText();
         txtConsola.setText(""); // Limpiar consola
         txtOutput.setText("");  // Limpiar output
         listaErrores.clear();   // Limpiar errores anteriores
         
-        // Declarar gestor
+        // Gestor para persistencia (se inicializa si hay DATABASE)
         eli.compiler.GestorJSON gestor = null;
         
         // VERIFICAR SI HAY DATABASE
@@ -270,7 +292,7 @@ public class VentanaPrincipal extends javax.swing.JFrame {
             java.io.PrintStream originalErr = System.err;
             System.setErr(errPrint);
             
-            // ANALIZAR CON EL LEXER
+            // ANALIZAR CON EL LEXER (GENERAR TOKENS)
             txtConsola.append("ANALISIS LEXICO:\n");
             java.io.Reader reader = new java.io.StringReader(codigo);
             eli.compiler.Lexer lexer = new eli.compiler.Lexer(reader);
@@ -293,17 +315,17 @@ public class VentanaPrincipal extends javax.swing.JFrame {
             // RESTAURAR System.err
             System.setErr(originalErr);
             
-            // PROCESAR ERRORES CAPTURADOS
+            // PROCESAR ERRORES LEXICOS CAPTURADOS
             String erroresCapturados = errStream.toString();
             if (!erroresCapturados.isEmpty()) {
                 String[] lineasError = erroresCapturados.split("\n");
                 for (String error : lineasError) {
                     if (error.contains("Error lexico")) {
-                        // PARSEAR EL ERROR Y SEPARAR SUS PARTES
+                        // Extraer caracter invalido
                         String[] partes = error.split("'");
                         String caracter = partes.length > 1 ? partes[1] : "?";
                         
-                        // EXTRAER LINEA Y COLUMNA
+                        // Extraer linea y columna
                         int linea = 0, columna = 0;
                         java.util.regex.Pattern p = java.util.regex.Pattern.compile("linea (\\d+), columna (\\d+)");
                         java.util.regex.Matcher m = p.matcher(error);
@@ -324,18 +346,19 @@ public class VentanaPrincipal extends javax.swing.JFrame {
                 txtConsola.append("\nSe encontraron " + listaErrores.size() + " errores lexicos\n");
             } 
             
-            // PROCESAR INSTRUCCIONES SI HAY GESTOR (tablas, adds, reads)
+            // PROCESAR INSTRUCCIONES SI HAY GESTOR
             if (gestor != null) {
-                procesarInstrucciones(codigo, gestor);
-                procesarRead(codigo, gestor);
+                procesarInstrucciones(codigo, gestor);  // TABBLE y ADD
+                procesarRead(codigo, gestor);           // READ
             }
             
             // Procesar UPDATE y EXPORT
             if (gestor != null){
-                procesarUpdate(codigo, gestor);
+                procesarUpdate(codigo, gestor);  // UPDATE
             }
-            procesarExport(codigo);
+            procesarExport(codigo);  // GESTOR
             
+            // MOSTRAR RESUMEN FINAL
             txtConsola.append("\nTotal de tokens: " + contadorTokens + "\n");
             txtConsola.append("\n========================================\n");
             txtConsola.append("ANALISIS COMPLETADO\n");
@@ -352,12 +375,14 @@ public class VentanaPrincipal extends javax.swing.JFrame {
         }
     }//GEN-LAST:event_botonEjecutarActionPerformed
 
+    // OPCION NUEVO ARCHIVO: Limpia el editor, consola y output
     private void OpcionNuevoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_OpcionNuevoActionPerformed
         txtEditor.setText("");
         txtConsola.setText("");
         txtOutput.setText("");
     }//GEN-LAST:event_OpcionNuevoActionPerformed
 
+    // OPCION ABRIR ARCHIVO: .code y lo carga al editor
     private void OpcionAbrirActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_OpcionAbrirActionPerformed
         JFileChooser fileChooser = new JFileChooser();
         if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
@@ -371,7 +396,8 @@ public class VentanaPrincipal extends javax.swing.JFrame {
             }
         }
     }//GEN-LAST:event_OpcionAbrirActionPerformed
-
+    
+    // OPCION GUARDAR
     private void OpcionGuardarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_OpcionGuardarActionPerformed
         JFileChooser fileChooser = new JFileChooser();
         if (fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
@@ -384,7 +410,8 @@ public class VentanaPrincipal extends javax.swing.JFrame {
             }
         }
     }//GEN-LAST:event_OpcionGuardarActionPerformed
-
+    
+    // REPORTE DE ERRORES LEXICOS
     private void OpcionErroresActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_OpcionErroresActionPerformed
         if (listaErrores.isEmpty()) {
             JOptionPane.showMessageDialog(this, "No hay errores para mostrar");
@@ -400,7 +427,7 @@ public class VentanaPrincipal extends javax.swing.JFrame {
         
         JTable tabla = new JTable(datos, columnas);
         
-        // FORMATO
+        // Formato de la tabla
         tabla.setRowHeight(25);
         tabla.setGridColor(new java.awt.Color(200, 200, 200)); // Color de cuadricula
         tabla.setShowGrid(true);
@@ -429,7 +456,7 @@ public class VentanaPrincipal extends javax.swing.JFrame {
             }
         });
         
-        // AJUSTAR ANCHO DE COLUMNAS
+        // Ajustar ancho de columnas
         tabla.getColumnModel().getColumn(0).setPreferredWidth(40);   // #
         tabla.getColumnModel().getColumn(1).setPreferredWidth(100);  // Tipo
         tabla.getColumnModel().getColumn(2).setPreferredWidth(350);  // Descripcion
@@ -441,7 +468,8 @@ public class VentanaPrincipal extends javax.swing.JFrame {
         frameErrores.setLocationRelativeTo(this);
         frameErrores.setVisible(true);
     }//GEN-LAST:event_OpcionErroresActionPerformed
-
+    
+    // TABLA DE TOKENS
     private void OpcionTokensActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_OpcionTokensActionPerformed
         // CREAR VENTANA
         JFrame frameTokens = new JFrame("Tabla de Tokens - ELI NOSQL");
@@ -462,7 +490,7 @@ public class VentanaPrincipal extends javax.swing.JFrame {
             java_cup.runtime.Symbol token;
             int contador = 1;
             
-            // ENCABEZADOS
+            // Encabezados
             listaTokens.add(new String[]{"#", "Lexema", "Tipo", "Linea", "Columna"});
             
             while ((token = lexer.next_token()).sym != eli.compiler.sym.EOF) {
@@ -658,8 +686,55 @@ public class VentanaPrincipal extends javax.swing.JFrame {
             JOptionPane.showMessageDialog(this, "Error al analizar: " + e.getMessage());
         }
     }//GEN-LAST:event_OpcionTokensActionPerformed
+
+    // ACERCA DE
+    private void OpcionAcercaDeActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_OpcionAcercaDeActionPerformed
+        // Crear un panel con informacion
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        
+        // Titulo
+        JLabel titulo = new JLabel("ELI NOSQL");
+        titulo.setFont(new java.awt.Font("Bauhaus 93", java.awt.Font.PLAIN, 36));
+        titulo.setForeground(new java.awt.Color(0, 0, 0));
+        titulo.setAlignmentX(JLabel.CENTER_ALIGNMENT);
+        panel.add(titulo);
+        
+        panel.add(Box.createRigidArea(new Dimension(0, 10))); // Espacio
+        
+        // Descripcion del proyecto
+        JLabel descripcion = new JLabel("<html><center>Interprete para el lenguaje ELI<br>Educational Language Implementation - NoSQL</center></html>");
+        descripcion.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 14));
+        descripcion.setAlignmentX(JLabel.CENTER_ALIGNMENT);
+        panel.add(descripcion);
+        
+        panel.add(Box.createRigidArea(new Dimension(0, 20)));
+        
+        // Mis datos
+        JLabel nombreLabel = new JLabel("Nombre: Emily Maritza Tepeu Guacamaya");
+        nombreLabel.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 14));
+        nombreLabel.setAlignmentX(JLabel.CENTER_ALIGNMENT);
+        panel.add(nombreLabel);
+        
+        JLabel carnetLabel = new JLabel("Carnet: 202402955");
+        carnetLabel.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 14));
+        carnetLabel.setAlignmentX(JLabel.CENTER_ALIGNMENT);
+        panel.add(carnetLabel);
+        
+        panel.add(Box.createRigidArea(new Dimension(0, 20)));
+        
+        JLabel version = new JLabel("Proyecto 1");
+        version.setFont(new java.awt.Font("Arial", java.awt.Font.ITALIC, 12));
+        version.setAlignmentX(JLabel.CENTER_ALIGNMENT);
+        panel.add(version);
+        
+        // Mostrar en un cuadro de dialogo
+        JOptionPane.showMessageDialog(this, panel, "Acerca de ELI NOSQL", JOptionPane.INFORMATION_MESSAGE);
+    }//GEN-LAST:event_OpcionAcercaDeActionPerformed
     
-    // PROESAR INSTRUCCIONES DE TABLA Y ADD
+    // PROCESAMIENTO DE INSTRUCCIONES
+    
+    // PROESAR INSTRUCCIONES DE TABLE Y ADD: extrae tablas del codigo y los sguarda en el gestor
     private void procesarInstrucciones(String codigo, eli.compiler.GestorJSON gestor) {
         // BUSCAR TABLAS
         java.util.regex.Pattern pTable = java.util.regex.Pattern.compile("table\\s+(\\w+)\\s*\\{([^}]+)\\}");
@@ -687,7 +762,7 @@ public class VentanaPrincipal extends javax.swing.JFrame {
             txtConsola.append("Tabla creada: " + nombreTabla + "\n");
         }
     
-        // BUSCAR ADDS
+        // Buscar incersiones (ADD)
         java.util.regex.Pattern pAdd = java.util.regex.Pattern.compile("add\\s+(\\w+)\\s*\\{([^}]+)\\}");
         java.util.regex.Matcher mAdd = pAdd.matcher(codigo);
     
@@ -724,7 +799,7 @@ public class VentanaPrincipal extends javax.swing.JFrame {
         }
     }
     
-    // PROCESAR INSTRUCCIONES READ
+    // PROCESAR INSTRUCCIONES READ: ejecuta consultas con filtros y muestra resultaos en el output
     private void procesarRead(String codigo, eli.compiler.GestorJSON gestor) {
         java.util.regex.Pattern pRead = java.util.regex.Pattern.compile(
             "read\\s+(\\w+)\\s*\\{\\s*fields:\\s*([^;]+);\\s*(?:filter:\\s*(.+?)\\s*;)?\\s*\\}"
@@ -781,7 +856,7 @@ public class VentanaPrincipal extends javax.swing.JFrame {
                 resultados = gestor.consultar(nombreTabla, null, null, null);
             }
             
-            // Guardar resultados para el export
+            // Guardar resultados para el EXPORT
             ultimosResultados = resultados;
             ultimosCampos = camposMostrar;
             ultimaTabla = nombreTabla;
@@ -814,7 +889,7 @@ public class VentanaPrincipal extends javax.swing.JFrame {
         }
     }
     
-    // PROCESAR INSTRUCCIONES UPDATE
+    // PROCESAR INSTRUCCIONES UPDATE: modifica registros que cumplan con el filtro
     private void procesarUpdate(String codigo, eli.compiler.GestorJSON gestor) {
         java.util.regex.Pattern pUpdate = java.util.regex.Pattern.compile(
             "update\\s+(\\w+)\\s*\\{\\s*set:\\s*([^;]+);\\s*(?:filter:\\s*(.+?)\\s*;)?\\s*\\}"
@@ -887,11 +962,11 @@ public class VentanaPrincipal extends javax.swing.JFrame {
                 }
             }
             
-            txtConsola.append("✏️ UPDATE en " + nombreTabla + ": " + actualizados + " registros actualizados\n");
+            txtConsola.append("UPDATE en " + nombreTabla + ": " + actualizados + " registros actualizados\n");
         }
     }
 
-    // PROCESAR INSTRUCCIONES EXPORT
+    // PROCESAR INSTRUCCIONES EXPORT: guarda los resultados del ultimo READ en un JSON
     private void procesarExport(String codigo) {
         java.util.regex.Pattern pExport = java.util.regex.Pattern.compile("export\\s+\"([^\"]+)\"\\s*;");
         java.util.regex.Matcher mExport = pExport.matcher(codigo);

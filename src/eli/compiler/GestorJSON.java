@@ -3,11 +3,13 @@ package eli.compiler;
 import java.io.*;
 import java.util.*;
 
+// PARA GESTIONAR LA PERSISTENCIA DE LA BASE DE DATOS
 public class GestorJSON {
     
     private String rutaArchivo;
-    private Map<String, Object> baseDatos;
+    private Map<String, Object> baseDatos;  // Estructura de la BD en memoria
     
+    // Constructor: inicializa la ruta y carga datos existentes
     public GestorJSON(String ruta) {
         this.rutaArchivo = ruta;
         this.baseDatos = new HashMap<>();
@@ -39,17 +41,17 @@ public class GestorJSON {
             scanner.close();
             reader.close();
             
-            // falta que el parser funcioneeeeee
+            // Verificar si el archivo tiene estructura de base de datos
             if (contenido.toString().contains("database")) {
                 System.out.println("Base de datos cargada desde: " + rutaArchivo);
             }         
         } catch (Exception e) {
-            // El archivo no existe y se empieza vacio
+            // Si ela rchivo no existe, se creara uno nuevo al guardar
             System.out.println("Creando nueva base de datos en: " + rutaArchivo);
         }
     }
     
-    // CONVERTIR A JSON
+    // CONVERTIR LA ESTRUCTURA EN MEMORIA A JSON
     private String convertirAJSON() {
         StringBuilder sb = new StringBuilder();
         sb.append("{\n");
@@ -59,13 +61,14 @@ public class GestorJSON {
         Map<String, Map<String, Object>> tablas = (Map<String, Map<String, Object>>) baseDatos.get("tablas");
         if (tablas != null) {
             int tablaCount = 0;
+            // Recorre cada tabla
             for (Map.Entry<String, Map<String, Object>> entry : tablas.entrySet()) {
                 tablaCount++;
                 sb.append("    \"").append(entry.getKey()).append("\": {\n");
                 
                 Map<String, Object> tabla = entry.getValue();
                 
-                // SCHEMA
+                // Guardar el esquema (estructura de campos)
                 sb.append("      \"schema\": {\n");
                 Map<String, String> schema = (Map<String, String>) tabla.get("schema");
                 int fieldCount = 0;
@@ -77,7 +80,7 @@ public class GestorJSON {
                 }
                 sb.append("      },\n");
                 
-                // RECORDS
+                // Guardar los registros de la tabla
                 sb.append("      \"records\": [\n");
                 List<Map<String, Object>> records = (List<Map<String, Object>>) tabla.get("records");
                 if (records != null) {
@@ -92,6 +95,7 @@ public class GestorJSON {
                             
                             Object valor = field.getValue();
                             
+                            // Para manejar diferentes tipos de datos
                             if (valor == null) {
                                 sb.append("null");
                             }
@@ -146,7 +150,7 @@ public class GestorJSON {
                                 sb.append("]");
                             }
                             else {
-                                sb.append(valor);
+                                sb.append(valor); // Numeros, booleanos
                             }
     
                             if (valueCount < record.size()) sb.append(",");
@@ -173,10 +177,12 @@ public class GestorJSON {
     }
     
     // GETTERS Y SETTERS
+    // NOMBRE DE LA BASE DE DATOS
     public void setNombreBase(String nombre) {
         baseDatos.put("nombre", nombre);
     }
     
+    // AGREGAR UNA NUEVA TABLA CON SU ESQUEMA
     public void agregarTabla(String nombre, Map<String, String> esquema) {
         Map<String, Map<String, Object>> tablas = (Map<String, Map<String, Object>>) baseDatos.get("tablas");
         if (tablas == null) {
@@ -189,15 +195,16 @@ public class GestorJSON {
         tabla.put("records", new ArrayList<>());
         
         tablas.put(nombre, tabla);
-        guardar(); // Guardar automaticamente
+        guardar(); // Guardar automaticamente despues de agregar
     }
     
+    // AGREGAR UN NUEVO REGISTRO A UNA TABLA EXISTENTE
     public void agregarRegistro(String tabla, Map<String, Object> registro) {
         Map<String, Map<String, Object>> tablas = (Map<String, Map<String, Object>>) baseDatos.get("tablas");
         if (tablas != null && tablas.containsKey(tabla)) {
             List<Map<String, Object>> records = (List<Map<String, Object>>) tablas.get(tabla).get("records");
             records.add(registro);
-            guardar(); // Guardar automaticamente
+            guardar(); // Guardar automaticamente despues de insertar
         }
     }
     
@@ -210,6 +217,7 @@ public class GestorJSON {
             List<Map<String, Object>> records = (List<Map<String, Object>>) tablas.get(nombreTabla).get("records");
         
             for (Map<String, Object> record : records) {
+                // Si no hay filtro, agregar todos
                 if (campoFiltro == null || operador == null || valor == null) {
                     // Sin filtro, agregar todos
                     resultados.add(record);
@@ -220,6 +228,7 @@ public class GestorJSON {
                     Object valorCampo = record.get(campoFiltro);
                     boolean cumple = false;
                 
+                    // Evaluar segun el operador
                     switch (operador) {
                         case "==":
                             cumple = valorCampo.equals(valor);
@@ -258,7 +267,7 @@ public class GestorJSON {
         return resultados;
     }
 
-    // OBTENER EL SCHEMA DE UNA TABLA
+    // OBTENER EL ESQUEMA DE UNA TABLA
     public Map<String, String> getSchema(String nombreTabla) {
         Map<String, Map<String, Object>> tablas = (Map<String, Map<String, Object>>) baseDatos.get("tablas");
         if (tablas != null && tablas.containsKey(nombreTabla)) {
@@ -280,7 +289,7 @@ public class GestorJSON {
                     Object valorCampo = record.get(campoFiltro);
                     boolean cumple = false;
                     
-                    // Evaluar condicion
+                    // Evaluar condicion del filtro
                     switch (operador) {
                         case "==": cumple = valorCampo.equals(valorFiltro); break;
                         case "!=": cumple = !valorCampo.equals(valorFiltro); break;
@@ -303,12 +312,12 @@ public class GestorJSON {
                     }
                 }
             }
-            guardar(); // Guardar cambios
+            guardar(); // Guardar cambios despues de actualizar
         }
         return contador;
     }
 
-    // EXPORTAR RESULTADOS EN UN JSON
+    // EXPORTAR RESULTADOS DE UNA CONSULTA A UN JSON
     public void exportarResultados(String nombreArchivo, List<Map<String, Object>> resultados, String[] campos, String nombreTabla) {
         try {
             StringBuilder sb = new StringBuilder();
@@ -322,6 +331,7 @@ public class GestorJSON {
             sb.append("],\n");
             sb.append("  \"registros\": [\n");
             
+            // Para escribir cada registro
             for (int i = 0; i < resultados.size(); i++) {
                 Map<String, Object> reg = resultados.get(i);
                 sb.append("    {");
